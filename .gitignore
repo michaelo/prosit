@@ -1,1 +1,5 @@
 build/
+builddir/
+tmp/
+.vscode/
+subprojects/**/
