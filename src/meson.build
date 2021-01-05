@@ -1,5 +1,7 @@
 src_lib_files = files([
-    'app.cpp'
+    'app.cpp',
+    'manifest.cpp',
+    'argparse.cpp',
 ])
 
 src_exe_files = files([

@@ -1,11 +1,12 @@
 #pragma once
 
 #include <cstdio>
+#include <cstring>
 #include <cassert>
 
 #include "defer.imp.h"
 
-char *file_to_buf(const char *path, size_t *size_out = NULL)
+inline char *file_to_buf(const char *path, size_t *size_out = NULL)
 {
     FILE *fp = fopen(path, "r");
     defer(fclose(fp));
