@@ -1,5 +1,7 @@
 # prosit
 
+ATT! WIP, NOT FUNCTIONAL.
+
 The gist:
 
     prosit init . # Set up a new prosit-manifest in the current working directory

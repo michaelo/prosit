@@ -1,6 +1,7 @@
 #include <cstdio>
+#include "app.h"
 
-
+// Only to serve as an entry point for the compiled executable. Get Out Of The Way Fast.
 int main(int argc, char** argv) {
-    printf("We are go!\n");
+    return app_main(argc, argv);
 }
