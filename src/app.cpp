@@ -11,10 +11,9 @@ void cmd_update(Context* c, CliArguments* a) {
 }
 
 int app_main(int argc, char** argv) {
-    for(int i=0; i<argc; i++) {
-        printf("%s ", argv[i]);
-    }
-    printf("\n");
+    CliArguments* args;
+    bool argparse_result = cli_argparse(argc, argv, &args);
+    defer(if(argparse_result) delete(args));
 
     
     // Read manifest? Or to be handled by command handlers that need it? For now: lazy, ie. in cmd-handler

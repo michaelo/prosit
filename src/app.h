@@ -49,8 +49,14 @@ enum Subcommand {
 
 struct CliArguments {
     Subcommand command;
-    char* cwd;
-    char* manifest_path;
+
+    bool verbose; // Including debug-output
+    bool silent; // Suppress everything but errors
+
+    bool outoftree;
+    bool force;
+    // char* cwd;
+    // char* manifest_path;
 };
 
 bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);

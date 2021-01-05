@@ -27,3 +27,4 @@
 * Recursive processing? I.e. if a pulled resource contains `project.manifest` - shall we process it?
 * Support user/global config file?
   * Allow fixed definitions for e.g. which git-executable to use?
+* Define proper external API to allow utility to be used as a library?
