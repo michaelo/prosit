@@ -24,6 +24,10 @@ bool manifest_parse(const char *path, Manifest **manifest_out)
 {
     size_t file_size;
     char *buf = file_to_buf(path, &file_size);
+    if(buf == nullptr) {
+        printf("ERROR: Could not open file %s\n", path);
+        return false;
+    }
     defer(delete (buf));
 
     Manifest *manifest = new Manifest;
@@ -52,10 +56,10 @@ bool manifest_parse(const char *path, Manifest **manifest_out)
         string_trim(manifest->entries[num_entries].src);
         string_trim(manifest->entries[num_entries].dst);
 
-        printf("Parsed: '%s' '%s' -> '%s'\n",
-               manifest->entries[num_entries].type,
-               manifest->entries[num_entries].src,
-               manifest->entries[num_entries].dst);
+        // printf("Parsed: '%s' '%s' -> '%s'\n",
+        //        manifest->entries[num_entries].type,
+        //        manifest->entries[num_entries].src,
+        //        manifest->entries[num_entries].dst);
         num_entries++;
     });
     manifest->length = num_entries;

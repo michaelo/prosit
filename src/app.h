@@ -10,18 +10,6 @@ struct Context {
     // "Global"-ish data to pass around
 };
 
-
-//////////////////////
-// Handlers
-//////////////////////
-enum Handler_Status {
-    OK,
-    Error,
-};
-
-Handler_Status handle_git(Context*, char* config);
-Handler_Status handle_file(Context*, char* config);
-
 //////////////////////
 // Manifest
 //////////////////////
@@ -60,3 +48,14 @@ struct CliArguments {
 };
 
 bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
+
+//////////////////////
+// Handlers
+//////////////////////
+enum Handler_Status {
+    OK,
+    Error,
+};
+
+Handler_Status handle_git(Context*, Manifest_Entry*);
+Handler_Status handle_file(Context*, Manifest_Entry*);

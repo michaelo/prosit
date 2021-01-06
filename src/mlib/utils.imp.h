@@ -13,8 +13,7 @@ inline char *file_to_buf(const char *path, size_t *size_out = NULL)
 
     if (fp == NULL)
     {
-        printf("Could not open file: %s\n", path);
-        assert(false);
+        return NULL;
     }
 
     fseek(fp, 0L, SEEK_END);

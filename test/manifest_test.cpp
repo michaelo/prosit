@@ -28,6 +28,8 @@ TEST(ManifestTest, ParseEntries)
     }
 }
 
+// TODO: Add tests to verify support for env-variables in src/dest
+
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
