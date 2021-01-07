@@ -1,13 +1,29 @@
 #pragma once
 
+#include <cstdio>
+
+static const int MAX_PATH_LEN = 1024;
+
 //////////////////////
 // Entry point API
 //////////////////////
 int app_main(int argc, char** argv);
 const char* app_version();
 
+// This might actually make sense to make class of
+// Alternatively, use macros which take Context* as parameter
 struct Context {
+    // 
+    char manifest_path_abs[MAX_PATH_LEN]; // abs
+
     // "Global"-ish data to pass around
+    bool verbose = false;
+    bool silent = false;
+
+    // Output-functions
+    void(*debug)(const char*, ...);
+    void(*info)(const char*, ...);
+    void(*error)(const char*, ...);
 };
 
 //////////////////////
@@ -15,8 +31,8 @@ struct Context {
 //////////////////////
 struct Manifest_Entry {
     char type[16];
-    char src[256];
-    char dst[256];
+    char src[MAX_PATH_LEN];
+    char dst[MAX_PATH_LEN];
 };
 
 struct Manifest {
@@ -59,3 +75,9 @@ enum Handler_Status {
 
 Handler_Status handle_git(Context*, Manifest_Entry*);
 Handler_Status handle_file(Context*, Manifest_Entry*);
+
+//////////////////////
+// Generic
+//////////////////////
+bool path_is_relative_inside_workspace(Context* c, const char* path);
+void expand_environment_vars(char* str, size_t str_len);

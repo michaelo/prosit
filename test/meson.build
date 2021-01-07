@@ -6,7 +6,8 @@ tests_files = [
     'test.cpp',
     'linkage_test.cpp',
     'manifest_test.cpp',
-    'argparse_test.cpp'
+    'argparse_test.cpp',
+    'generic_test.cpp'
 ]
 foreach test_file: tests_files
     test(test_file,
