@@ -16,7 +16,7 @@
 * Implement hg support
 * Implement dir support
 * Implement support for other data sources?
-* Manifest: Support groups
+* Manifest: Support groups to allow only processing certain sets of entries. Syntax?
 * HTTP/S authentication methods:
     * Basic auth
     * Bearer?
@@ -31,3 +31,7 @@
 * Support user/global config file?
   * Allow fixed definitions for e.g. which git-executable to use?
 * Define proper external API to allow utility to be used as a library?
+* Manifest: Support annotations to entries, e.g:
+  * !: same as -f, but for single entry
+  * r: recursive, if dependency contains a project.manifest, then process it
+  * ... 
