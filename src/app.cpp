@@ -49,7 +49,7 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
     }
     defer(manifest_free(manifest));
 
-    strcpy(c->manifest_path_abs, fs::absolute(fs::path("project.manifest").parent_path()).c_str());
+    strcpy(c->manifest_path_abs, (const char*)fs::absolute(fs::path("project.manifest").parent_path()).c_str());
     printf("workspace: %s\n", c->manifest_path_abs);
 
     if(!precheck_manifest(c, a, manifest)) {
@@ -171,7 +171,7 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
     char joint_path[MAX_PATH_LEN];
     snprintf(joint_path, sizeof(joint_path), "%s%s", workspace_path, path_to_check);
     fs::path abs = fs::weakly_canonical(joint_path);
-    const char *abs_path = abs.c_str();
+    const char *abs_path = (const char*)abs.c_str();
     if (strstr(abs_path, workspace_path) != abs_path)
     {
         printf("must be here: %s - %s vs %s\n", joint_path, abs_path, workspace_path);

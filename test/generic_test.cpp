@@ -4,6 +4,8 @@
 #include "app.h"
 #include "test.h"
 
+#include "platform.h"
+
 namespace fs = std::filesystem;
 
 TEST(GenericTest, path_is_relative_inside_workspace)
@@ -11,7 +13,7 @@ TEST(GenericTest, path_is_relative_inside_workspace)
     Context c;
     fs::path manifest_path("/my/repo/project.manifest");
     
-    strncpy(c.manifest_path_abs, fs::absolute(manifest_path.parent_path()).c_str(), sizeof(c.manifest_path_abs));
+    strncpy(c.manifest_path_abs, (const char*)fs::absolute(manifest_path.parent_path()).c_str(), sizeof(c.manifest_path_abs));
     ASSERT_TRUE(path_is_relative_inside_workspace(c.manifest_path_abs, "./ok"));
     ASSERT_TRUE(path_is_relative_inside_workspace(c.manifest_path_abs, "ok"));
     ASSERT_FALSE(path_is_relative_inside_workspace(c.manifest_path_abs, "/not/ok"));

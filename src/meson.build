@@ -4,16 +4,14 @@ src_lib_files = files([
     'argparse.cpp',
     'handle_git.cpp',
     'handle_file.cpp',
+    'platform.cpp',
 ])
 
 src_exe_files = files([
     'main.cpp',
 ])
 
-deps = [
-]
-
-src_lib = library('app', src_lib_files, dependencies : deps)
+src_lib = static_library('app', src_lib_files)
 
 exe = executable('prosit', src_exe_files,
     link_with : [src_lib],

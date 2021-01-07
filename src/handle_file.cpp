@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <cassert>
 
 #include "app.h"
 
@@ -19,7 +20,7 @@ Handler_Status handle_file(Context *c, Manifest_Entry *e)
     if(e->dst[strlen(e->dst)-1] == '/') {
         // TODO: Ensure we're within buffer size
         assert(sizeof(e->dst) > dst_len+src_canonical.filename().string().length());
-        strcpy(&e->dst[strlen(e->dst)], src_canonical.filename().c_str());
+        strcpy(&e->dst[strlen(e->dst)], (const char*)src_canonical.filename().c_str());
     }
 
     if(!fs::exists(e->src)) {

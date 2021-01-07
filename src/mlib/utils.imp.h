@@ -6,6 +6,14 @@
 
 #include "defer.imp.h"
 
+#ifdef _WIN32
+
+inline char* strtok_r(char* str, const char* sep, char** save)
+{
+    return strtok_s(str, sep, save);
+}
+#endif
+
 inline char *file_to_buf(const char *path, size_t *size_out = NULL)
 {
     FILE *fp = fopen(path, "r");

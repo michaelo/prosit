@@ -1,6 +1,8 @@
 #include "app.h"
 #include "test.h"
 
+#include "platform.h"
+
 TEST(ManifestTest, ParseEmpty)
 {
     Manifest *m;
