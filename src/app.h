@@ -30,6 +30,7 @@ struct Context {
 // Manifest
 //////////////////////
 struct Manifest_Entry {
+    int line_in_manifest;
     char type[16];
     char src[MAX_PATH_LEN];
     char dst[MAX_PATH_LEN];
@@ -69,7 +70,7 @@ bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
 // Handlers
 //////////////////////
 enum Handler_Status {
-    OK,
+    OK = 0,
     Error,
 };
 
@@ -79,5 +80,5 @@ Handler_Status handle_file(Context*, Manifest_Entry*);
 //////////////////////
 // Generic
 //////////////////////
-bool path_is_relative_inside_workspace(Context* c, const char* path);
+bool path_is_relative_inside_workspace(const char* workspace_path, const char *path_to_check);
 void expand_environment_vars(char* str, size_t str_len);

@@ -25,6 +25,9 @@
 
 ## Future
 * Recursive processing? I.e. if a pulled resource contains `project.manifest` - shall we process it?
+  * Concerns:
+    * Increases importance of ensuring our system()-calls are safe as we pass in strings from the manifest as parameters.
+    * Should likely require case-by-case opt-in in manifest-file.
 * Support user/global config file?
   * Allow fixed definitions for e.g. which git-executable to use?
 * Define proper external API to allow utility to be used as a library?

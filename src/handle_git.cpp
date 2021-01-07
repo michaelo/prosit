@@ -34,7 +34,6 @@ Handler_Status handle_git(Context *c, Manifest_Entry *e)
         ref = tok+1;
     }
     // TODO: _Require_ a ref?
-    // TODO: Require dst to be in-workspace, unless "outoftree" - TODO: solve outside of here. Common to all handlers.
 
     // If dest does not exist: clone
     if(!std::filesystem::exists(e->dst)) {
