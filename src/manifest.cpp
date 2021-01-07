@@ -62,6 +62,7 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
             return;
         }
 
+        manifest->entries[num_entries].line_in_manifest = line_no;
         string_trim(manifest->entries[num_entries].type);
         string_trim(manifest->entries[num_entries].src);
         string_trim(manifest->entries[num_entries].dst);

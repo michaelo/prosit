@@ -24,7 +24,7 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
         entry = &m->entries[i];
         if(!path_is_relative_inside_workspace(c->manifest_path_abs, entry->dst)) {
             if(!a->outoftree) {
-                c->error("manifest line: %d: destination may point to outside of project workspace\n", entry->line_in_manifest);
+                c->error("manifest line: %d: destination may point to outside of project workspace (%s and %s)\n", entry->line_in_manifest, c->manifest_path_abs, entry->dst);
                 any_errors = true;
             } else {
                 c->debug("manifest line: %d: destination may point to outside of project workspace\n", entry->line_in_manifest);
@@ -62,15 +62,15 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
     for (int i = 0; i < manifest->length; i++)
     {
         // TODO: Do initial verification e.g. re dest being inside workspace or not
-        c->debug("Processing: '%s' '%s' -> '%s'\n",
-                 manifest->entries[i].type,
-                 manifest->entries[i].src,
-                 manifest->entries[i].dst);
+        c->debug("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
+                manifest->entries[i].type,
+                manifest->entries[i].src,
+                manifest->entries[i].dst,
+                i+1,
+                manifest->entries[i].line_in_manifest);
 
-        if (strcmp(manifest->entries[i].type, "git") == 0)
-        {
-            handle_git(c, &manifest->entries[i]);
-        }
+        if (strcmp(manifest->entries[i].type, "git") == 0) handle_git(c, &manifest->entries[i]);
+        if (strcmp(manifest->entries[i].type, "file") == 0) handle_file(c, &manifest->entries[i]);
     }
 
     return Handler_Status::OK;
@@ -169,13 +169,17 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
     //   this to ensure there are no relative-tricks mid-string.
     //   TBD: Might simply be solved by checking for any occurrence of ".."
     char joint_path[MAX_PATH_LEN];
-    snprintf(joint_path, sizeof(joint_path), "%s/%s", workspace_path, path_to_check);
-    const char *abs_path = fs::absolute(fs::path(joint_path)).c_str();
+    snprintf(joint_path, sizeof(joint_path), "%s%s", workspace_path, path_to_check);
+    fs::path abs = fs::weakly_canonical(joint_path);
+    const char *abs_path = abs.c_str();
     if (strstr(abs_path, workspace_path) != abs_path)
+    {
+        printf("must be here: %s - %s vs %s\n", joint_path, abs_path, workspace_path);
         return false; // abs_path doesn't start with manifest_path_abs
+    }
 
-    return true;
-}
+        return true;
+    }
 
 // Att! Modifies str. TODO: Test to make in-place to avoid having to create temporary buffer.
 void expand_environment_vars(char *str, const size_t str_len)
