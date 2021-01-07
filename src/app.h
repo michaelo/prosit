@@ -41,6 +41,7 @@ struct Manifest {
     Manifest_Entry entries[128]; // TODO: Fix to dynamic size based in input data (two-pass parse)
 };
 
+bool manifest_parse_buf(char* buf, Manifest **manifest_out);
 bool manifest_parse(const char* path, Manifest** manifest_out);
 void manifest_free(Manifest* m);
 

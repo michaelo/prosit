@@ -1,15 +1,14 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
+#include <filesystem>
 
 #include "app.h"
 
 #include "mlib/utils.imp.h"
 #include "mlib/defer.imp.h"
 
-#include <filesystem>
 namespace fs = std::filesystem;
-
 
 bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
 {
@@ -77,6 +76,8 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
     return Handler_Status::OK;
 }
 
+
+// TODO: Temporary solution until proper output-strategy is determined
 void print_debug(const char *format, ...)
 {
     va_list args;
@@ -221,6 +222,9 @@ void expand_environment_vars(char *str, const size_t str_len)
                         n += env_len;
                         assert(n < str_len); // Cheap assurance.
                         i = j;
+                    } else {
+                        // TODO: Use proper print-function
+                        printf("WARNING: Found env-like symbol, but no such env found: %s\n", symbuf);
                     }
 
                     break;

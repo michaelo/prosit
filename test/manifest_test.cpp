@@ -28,7 +28,36 @@ TEST(ManifestTest, ParseEntries)
     }
 }
 
-// TODO: Add tests to verify support for env-variables in src/dest
+TEST(ManifestTest, EntriesShallSupportEnvVariables)
+{
+    {
+        Manifest *m;
+        char buf[] = R"manifest(
+            git: src > dest
+        )manifest";
+
+        ASSERT_TRUE(manifest_parse_buf(buf, &m));
+        ASSERT_STREQ(m->entries[0].src, "src");
+        ASSERT_STREQ(m->entries[0].dst, "dest");
+
+        manifest_free(m);
+    }
+
+    {
+        Manifest *m;
+        setenv("PROSIT_FAKEUSER", "mimo", 1);
+        setenv("PROSIT_FAKEPASS", "secret", 1);
+        char buf[] = R"manifest(
+            git: $(PROSIT_FAKEUSER):$(PROSIT_FAKEPASS) > local/$(PROSIT_FAKEUSER)
+        )manifest";
+
+        ASSERT_TRUE(manifest_parse_buf(buf, &m));
+        ASSERT_STREQ(m->entries[0].src, "mimo:secret");
+        ASSERT_STREQ(m->entries[0].dst, "local/mimo");
+
+        manifest_free(m);
+    }
+}
 
 int main(int argc, char **argv)
 {
