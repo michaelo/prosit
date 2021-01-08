@@ -28,8 +28,9 @@ inline char *file_to_buf(const char *path, size_t *size_out = NULL)
     long raw_size = ftell(fp);
     rewind(fp);
 
-    char *filebuf = new char[raw_size];
+    char *filebuf = new char[raw_size+1];
     fread(filebuf, raw_size, 1, fp);
+    filebuf[raw_size] = '\0';
 
     if (size_out != NULL)
         *size_out = raw_size;
