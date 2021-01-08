@@ -1,11 +1,11 @@
 # prosit
 
-ATT! WIP, NOT FUNCTIONAL.
+ATT! The WIP is strong with this one, but it's running now. Tested building for macOS (clang) and Windows 10 (msbuild).
 
 The gist:
 
     prosit update # Update all dependencies as specifed in the manifest
-    prosit init . # Set up a new best-effort prosit-manifest in the current working directory
+    prosit init # Set up a new best-effort project.manifest in the current working directory
     prosit --help
 
 
@@ -19,7 +19,7 @@ A file in the current working directory (most likely the root-folder of your pro
 
 Name: project.manifest
 
-Contents-syntax:
+Contents-syntax (Att! subject to changes):
 
     # Comments are supported. Here we pull a repo and checkout e.g. a tag
     git: https://github.com/some/repo#v1.0 > my/local/path
@@ -27,6 +27,8 @@ Contents-syntax:
     git: https://github.com/other/repo#main > otherrepo
     # Some files from somewhere else could be relevant
     file: /etc/hosts > local/hosts.txt
+    # File from web
+    https: http://michaelodden.com/robots.txt > robots.txt
 
 Assuming all sources are available, and any rights etc are OK, this shall result in a directory structure like this:
 
@@ -61,6 +63,10 @@ It builds using the [Meson Build system](https://mesonbuild.com/).
     cd build
     ninja
     ./src/prosit --help
+
+### Prerequisites
+
+* libcurl must be installed and available
 
 
 ## Design goals

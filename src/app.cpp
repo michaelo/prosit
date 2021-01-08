@@ -71,6 +71,8 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
 
         if (strcmp(manifest->entries[i].type, "git") == 0) handle_git(c, &manifest->entries[i]);
         if (strcmp(manifest->entries[i].type, "file") == 0) handle_file(c, &manifest->entries[i]);
+        if (strcmp(manifest->entries[i].type, "https") == 0) handle_https(c, &manifest->entries[i]);
+        // TODO: Fail if unsupported type
     }
 
     return Handler_Status::OK;

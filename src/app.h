@@ -77,6 +77,7 @@ enum Handler_Status {
 
 Handler_Status handle_git(Context*, Manifest_Entry*);
 Handler_Status handle_file(Context*, Manifest_Entry*);
+Handler_Status handle_https(Context*, Manifest_Entry*);
 
 //////////////////////
 // Generic
