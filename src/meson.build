@@ -11,9 +11,4 @@ src_exe_files = files([
     'main.cpp',
 ])
 
-src_lib = static_library('app', src_lib_files)
-
-exe = executable('prosit', src_exe_files,
-    link_with : [src_lib],
-    install : true
-    )
+src_lib = static_library('app', src_lib_files, dependencies: deps)
