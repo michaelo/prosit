@@ -8,13 +8,16 @@ src_lib_files = files([
     'platform.cpp',
 ])
 
-src_exe_files = files([
-    'main.cpp',
-])
-
 deps = [
     # dependency('openssl'),
     dependency('libcurl')
 ]
 
-src_lib = static_library('app', src_lib_files, dependencies: deps)
+conf_data = configuration_data()
+conf_data.set('version', meson.project_version())
+configure_file(input : 'prosit_config.h.in',
+               output : 'prosit_config.h',
+               configuration : conf_data)
+configuration_inc = include_directories('.')
+
+src_lib = static_library('app', src_lib_files, dependencies: deps, include_directories : configuration_inc)

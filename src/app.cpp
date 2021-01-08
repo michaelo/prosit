@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "app.h"
+#include <prosit_config.h>
 
 #include "mlib/utils.imp.h"
 #include "mlib/defer.imp.h"
@@ -144,7 +145,7 @@ int app_main(int argc, char **argv)
 
 const char *app_version()
 {
-    return "0.1.0"; // TODO: Get from build sys
+    return APP_VERSION;
 }
 
 
