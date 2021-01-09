@@ -7,18 +7,6 @@
 #include "mlib/utils.imp.h"
 #include "mlib/defer.imp.h"
 
-void string_trim(char *str)
-{
-    // l-trim?
-    // r-trim:
-    for (int i = strlen(str) - 1; i >= 0; i--)
-    {
-        if (str[i] != ' ')
-            break;
-        str[i] = '\0';
-    }
-}
-
 bool manifest_parse_buf(char *buf, Manifest **manifest_out)
 {
     Manifest *manifest = new Manifest;

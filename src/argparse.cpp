@@ -22,9 +22,9 @@ bool deserialize(char *str, Subcommand *out)
 
 void cli_print_help()
 {
-    printf(R"help(prosit v%s
+    printf(R"help(%s v%s
 
-Usage: prosit --help|<subcommand> [args]
+Usage: %s --help|<subcommand> [args]
 
 Subcommands:
     update      Attempt to ensure the workspace is in sync with the manifest
@@ -40,7 +40,7 @@ Global args:
 
 (c) Michael Odden - https://github.com/michaelo/prosit
 )help",
-           app_version());
+           APP_NAME, app_version(), APP_NAME);
 }
 
 // arguments_out must be freed if function returns true
@@ -57,18 +57,22 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         return false;
     }
 
-    // Check for -h/--help instead of subcommand
-    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
+    // Check for non-subcommand flags (help, version)
+    for (int i = 1; i < argc; i++)
     {
-        cli_print_help();
-        return false;
-    }
+        // Check for -h/--help
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+        {
+            cli_print_help();
+            return false;
+        }
 
-    // Check for --version instead of subcommand
-    if (strcmp(argv[1], "--version") == 0)
-    {
-        printf("prosit v%s\n", app_version());
-        return false;
+        // Check for --version
+        if (strcmp(argv[i], "--version") == 0)
+        {
+            printf("prosit v%s\n", app_version());
+            return false;
+        }
     }
 
     // Check for sub-command
@@ -78,7 +82,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         return false;
     }
 
-    // Check for common flags (-f, -v)
+    // Check for common flags (-f, -v, -s)
     for (int i = 2; i < argc; i++)
     {
         if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--force") == 0)
@@ -104,20 +108,6 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         {
             arguments->outoftree = true;
             continue;
-        }
-
-        // Check for -h / --help as any argument
-        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
-        {
-            cli_print_help();
-            return false;
-        }
-
-        // Check for --version as any argument
-        if (strcmp(argv[i], "--version") == 0)
-        {
-            printf("prosit v%s\n", app_version());
-            return false;
         }
     }
 

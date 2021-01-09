@@ -18,7 +18,7 @@
 //   * if exists and is not a git-repo: abort
 // * if ref specified: checkout accordingly
 // 
-Handler_Status handle_git(Context *c, Manifest_Entry *e)
+App_Status_Code handle_git(Context *c, Manifest_Entry *e)
 {
     // Att! This modifies the Manifest_Entry <- thus if this for some reason is processed multiple times the behaviour is undefined
     char scrap[1024];
@@ -40,7 +40,7 @@ Handler_Status handle_git(Context *c, Manifest_Entry *e)
         if (std::system(scrap) != 0)
         {
             printf("ERROR: Got error executing git clone. See message(s) above.\n");
-            return Handler_Status::Error;
+            return App_Status_Code::Error;
         }
     } else {
         auto cwd = std::filesystem::current_path();
@@ -59,12 +59,12 @@ Handler_Status handle_git(Context *c, Manifest_Entry *e)
             if (std::system(scrap) != 0)
             {
                 c->error("Got error executing git pull. See message(s) above.\n");
-                return Handler_Status::Error;
+                return App_Status_Code::Error;
             }
         } else {
             // If dest exists and is not a git-repo: abort
             c->error("Destination already exists, but is not a git-repo. Aborting.\n");
-            return Handler_Status::Error;
+            return App_Status_Code::Error;
         }
     }
 
@@ -83,5 +83,5 @@ Handler_Status handle_git(Context *c, Manifest_Entry *e)
         }
     }
 
-    return Handler_Status::OK;
+    return App_Status_Code::OK;
 }

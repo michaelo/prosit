@@ -70,7 +70,22 @@ TEST(GenericTest, extract_login_from_uri)
     ASSERT_STREQ(username, "user2");
     ASSERT_STREQ(password, "pass2");
     ASSERT_FALSE(extract_login_from_uri(input3, NULL, 0, NULL, 0));
+}
 
+TEST(GenericTest, string_trim)
+{
+    char inputs[][16] = {
+        "str",
+        "str  ",
+        "  str",
+        "  str  ",
+    };
+
+    for(size_t i=0; i<sizeof(inputs)/sizeof(inputs[0]); i++) {
+        printf("testing: '%s'\n", inputs[i]);
+        ASSERT_EQ(string_trim(inputs[i]), 3);
+        ASSERT_STREQ(inputs[i], "str");
+    }
 }
 
 int main(int argc, char **argv)

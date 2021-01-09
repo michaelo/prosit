@@ -5,7 +5,7 @@ ATT! The WIP is strong with this one, but it's running now. Tested building for 
 The gist:
 
     prosit update # Update all dependencies as specifed in the manifest
-    prosit init # Set up a new best-effort project.manifest in the current working directory
+    # prosit init # Set up a new best-effort project.manifest in the current working directory <- not yet implemented
     prosit --help
 
 

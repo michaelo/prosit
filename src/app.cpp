@@ -12,23 +12,46 @@
 
 namespace fs = std::filesystem;
 
+static struct
+{
+    // TODO: We must provide locking on actual *out when we go mt. Revise. 
+    FILE *debug = stdout;
+    FILE *info = stdout;
+    FILE *error = stderr;
+} OutputStreams;
+
+struct Handler_Definition
+{
+    const char type[16];
+    std::function<App_Status_Code(Context *, Manifest_Entry *)> handler;
+};
+
+static Handler_Definition handlers[] = {
+    {.type = "https",
+     .handler = handle_https},
+    {.type = "git",
+     .handler = handle_git},
+    {.type = "file",
+     .handler = handle_file}};
+
+// Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
 bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
 {
-    // Do initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
-    (void)c;
-    (void)m;
-
     bool any_errors = false;
 
-    Manifest_Entry* entry;
+    Manifest_Entry *entry;
     for (int i = 0; i < m->length; i++)
     {
         entry = &m->entries[i];
-        if(!path_is_relative_inside_workspace(c->manifest_path_abs, entry->dst)) {
-            if(!a->outoftree) {
+        if (!path_is_relative_inside_workspace(c->manifest_path_abs, entry->dst))
+        {
+            if (!a->outoftree)
+            {
                 c->error("manifest line: %d: destination may point to outside of project workspace (%s and %s)\n", entry->line_in_manifest, c->manifest_path_abs, entry->dst);
                 any_errors = true;
-            } else {
+            }
+            else
+            {
                 c->debug("manifest line: %d: destination may point to outside of project workspace\n", entry->line_in_manifest);
             }
         }
@@ -37,25 +60,25 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
     return !any_errors;
 }
 
-
-Handler_Status cmd_update(Context *c, CliArguments *a)
+// Main entry point for the subcommand "update"
+//      Parse manifest
+//      For each entry in manifest, execute the type-specific handle_<type>-function
+App_Status_Code cmd_update(Context *c, CliArguments *a)
 {
-    (void)c;
-    (void)a;
-
     Manifest *manifest;
-    if (!manifest_parse("project.manifest", &manifest))
+    if (!manifest_parse(DEFAULT_MANIFEST_NAME, &manifest))
     {
         c->error("Got error loading manifest - see previous message(s)\n");
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
     defer(manifest_free(manifest));
 
-    strcpy(c->manifest_path_abs, (const char*)fs::absolute(fs::path("project.manifest").parent_path()).c_str());
-    printf("workspace: %s\n", c->manifest_path_abs);
+    strcpy(c->manifest_path_abs, (const char *)fs::absolute(fs::path(DEFAULT_MANIFEST_NAME).parent_path()).c_str());
+    c->info("workspace: %s\n", c->manifest_path_abs);
 
-    if(!precheck_manifest(c, a, manifest)) {
-        return Handler_Status::Error;
+    if (!precheck_manifest(c, a, manifest))
+    {
+        return App_Status_Code::Error;
     }
 
     // TODO: Spread out multithread?
@@ -63,51 +86,69 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
     // TODO: Make singlethreading an option, and automatically determine number of threads for mt from std::thread::hardware_concurrency();
     for (int i = 0; i < manifest->length; i++)
     {
-        // c->debug("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
-        // Att! Not showing src as it may contain expanded environment-variables with secrets
+        // c->info("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
+        // Att! Not showing src now as it may contain expanded environment-variables with secrets
         // TODO: For better output we might instead keep both strings. Or implement a masking-function.
-        c->debug("Processing: '%s' -> '%s' (entry %d, line %d)\n",
-                manifest->entries[i].type,
-                // manifest->entries[i].src,
-                manifest->entries[i].dst,
-                i+1,
-                manifest->entries[i].line_in_manifest);
+        c->info("Processing: '%s' -> '%s' (entry %d, line %d)\n",
+                 manifest->entries[i].type,
+                 // manifest->entries[i].src,
+                 manifest->entries[i].dst,
+                 i + 1,
+                 manifest->entries[i].line_in_manifest);
 
-        if (strcmp(manifest->entries[i].type, "git") == 0) handle_git(c, &manifest->entries[i]);
-        if (strcmp(manifest->entries[i].type, "file") == 0) handle_file(c, &manifest->entries[i]);
-        if (strcmp(manifest->entries[i].type, "https") == 0) handle_https(c, &manifest->entries[i]);
-        // TODO: Fail if unsupported type
+        bool handler_found = false;
+        for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
+        {
+            if (strcmp(manifest->entries[i].type, handlers[j].type) == 0)
+            {
+                handlers[j].handler(c, &manifest->entries[i]);
+                handler_found = true;
+                break;
+            }
+        }
+
+        if (!handler_found)
+        {
+            c->error("Unsupported handler type: %s  (entry %d, line %d)\n",
+                     manifest->entries[i].type,
+                     i + 1,
+                     manifest->entries[i].line_in_manifest);
+        }
     }
 
-    return Handler_Status::OK;
+    return App_Status_Code::OK;
 }
 
-
-// TODO: Temporary solution until proper output-strategy is determined
-void print_debug(const char *format, ...)
+static void print_debug(const char *format, ...)
 {
+    if (!OutputStreams.debug)
+        return;
     va_list args;
     va_start(args, format);
-    fprintf(stdout, "DEBUG: ");
-    vfprintf(stdout, format, args);
+    fprintf(OutputStreams.debug, "DEBUG: ");
+    vfprintf(OutputStreams.debug, format, args);
     va_end(args);
 }
 
-void print_info(const char *format, ...)
+static void print_info(const char *format, ...)
 {
+    if (!OutputStreams.info)
+        return;
     va_list args;
     va_start(args, format);
-    fprintf(stdout, "INFO: ");
-    vfprintf(stdout, format, args);
+    fprintf(OutputStreams.info, "INFO: ");
+    vfprintf(OutputStreams.info, format, args);
     va_end(args);
 }
 
-void print_error(const char *format, ...)
+static void print_error(const char *format, ...)
 {
+    if (!OutputStreams.error)
+        return;
     va_list args;
     va_start(args, format);
-    fprintf(stderr, "ERROR: ");
-    vfprintf(stderr, format, args);
+    fprintf(OutputStreams.error, "ERROR: ");
+    vfprintf(OutputStreams.error, format, args);
     va_end(args);
 }
 
@@ -118,6 +159,7 @@ void context_init(Context *c)
     c->error = print_error;
 }
 
+// Main library entry point
 int app_main(int argc, char **argv)
 {
     Context c;
@@ -132,142 +174,27 @@ int app_main(int argc, char **argv)
         return -1;
     }
 
+    // Configure output-handling based on cli-args
+    OutputStreams.debug = args->verbose ? stdout : nullptr;
+    OutputStreams.info = args->silent ? nullptr : stdout;
+
+    // Check command and start processing
     switch (args->command)
     {
     case Update:
         return (int)cmd_update(&c, args);
         break;
     default:
+        // Should not happen as this is already handled in cli_argparse
         c.error("Unsupported subcommand\n");
-        return -1;
+        return App_Status_Code::Error;
         break;
     }
 
-    return 0;
+    return App_Status_Code::OK;
 }
 
 const char *app_version()
 {
     return APP_VERSION;
-}
-
-
-/////////////////////
-// Utility-functions
-/////////////////////
-bool path_is_relative_inside_workspace(const char* workspace_path, const char *path_to_check)
-{
-    assert(strlen(path_to_check) > 1);
-    // Returns false if:
-    //    path is not relative
-    //    attempts to traverse upwards out of directory of manifest
-
-    if (path_to_check[0] == '/')
-        return false;
-    if (path_to_check[0] == '\\')
-        return false;
-    if (path_to_check[0] == '.' && path_to_check[1] == '.')
-        return false;
-    if (path_to_check[1] == ':')
-        return false; // Indicative of Win drive-based-path
-
-    // Checks that the resolved manifest+path-path ends up starting with the manifest path
-    //   this to ensure there are no relative-tricks mid-string.
-    //   TBD: Might simply be solved by checking for any occurrence of ".."
-    char joint_path[MAX_PATH_LEN];
-    snprintf(joint_path, sizeof(joint_path), "%s%s", workspace_path, path_to_check);
-    fs::path abs = fs::weakly_canonical(joint_path);
-    const char *abs_path = (const char*)abs.c_str();
-    if (strstr(abs_path, workspace_path) != abs_path)
-    {
-        printf("must be here: %s - %s vs %s\n", joint_path, abs_path, workspace_path);
-        return false; // abs_path doesn't start with manifest_path_abs
-    }
-
-        return true;
-    }
-
-// Att! Modifies str. TODO: Test to make in-place to avoid having to create temporary buffer.
-void expand_environment_vars(char *str, const size_t str_len)
-{
-    // Searches for symbols of format $(var_name) and replaces it with the corresponding env-value if found.
-    // Strategy: currently using separate buffer to write the expanded string, before copying it to source. 
-    // TBD: May continously manipulate same str for performance and avoidance of separate buffer on stack
-    assert(str_len < 2048);
-    char scrap[2048];
-    size_t n = 0; // byte count for expanded string
-
-    char *sym = sym;
-    char *env;
-
-    char symbuf[128];
-    bool any_expansions = false;
-    for (size_t i = 0; i < str_len - 1; i++)
-    {
-        // Locate start of potential symbol
-        if (str[i] == '$' && str[i + 1] == '(')
-        {
-            sym = str + i + 2;
-
-            // Locate end of potential symbol
-            // Find first possible closing ')' within string?
-            for (size_t j = i + 1; j < str_len; j++)
-            {
-                if (str[j] == ')')
-                {
-                    size_t sym_len = str + j - sym;
-                    memcpy(symbuf, sym, sym_len);
-                    symbuf[sym_len] = '\0';
-
-                    // printf("Got match: %s\n", symbuf);
-                    env = getenv(symbuf);
-
-                    if (env != nullptr)
-                    {
-                        // printf(" match in env: %s\n", env);
-                        size_t env_len = strlen(env);
-                        any_expansions = true;
-                        memcpy(scrap + n, env, env_len); // Don't want \0
-
-                        n += env_len;
-                        assert(n < str_len); // Cheap assurance.
-                        i = j;
-                    } else {
-                        // TODO: Use proper print-function
-                        printf("WARNING: Found env-like symbol, but no such env found: %s\n", symbuf);
-                    }
-
-                    break;
-                }
-            }
-        }
-        else
-        {
-            scrap[n++] = str[i];
-        }
-    }
-
-    if (any_expansions)
-    {
-        scrap[n] = '\0';
-        strcpy(str, scrap);
-    }
-}
-
-bool extract_login_from_uri(const char* uri, char* username_out, size_t username_len, char* password_out, size_t password_len)
-{
-    // TODO: need to be more robust
-    char protocol[16];
-    char username_buf[128] = {0};
-    char password_buf[128] = {0};
-    int matches = sscanf(uri, "%[^:]://%128[^:]:%128[^@]@", protocol, username_buf, password_buf);
-
-    if(matches != 3) {
-        return false;
-    }
-
-    strncpy(username_out, username_buf, std::min(sizeof(username_buf), username_len));
-    strncpy(password_out, password_buf, std::min(sizeof(password_buf), password_len));
-
-    return true;
 }

@@ -13,7 +13,7 @@ static size_t writefunction(void *ptr, size_t size, size_t nmemb, void *stream)
     return (nmemb * size);
 }
 
-Handler_Status handle_https(Context *c, Manifest_Entry *e)
+App_Status_Code handle_https(Context *c, Manifest_Entry *e)
 {
     CURL *ch;
     CURLcode rv;
@@ -33,7 +33,7 @@ Handler_Status handle_https(Context *c, Manifest_Entry *e)
     if (!file)
     {
         c->error("Could not open temp-file for writing: %s\n", tmp_name);
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
     defer(remove(tmp_name));
 
@@ -76,7 +76,7 @@ Handler_Status handle_https(Context *c, Manifest_Entry *e)
     if (rv != CURLE_OK)
     {
         c->error("Could not download file: %s\n", e->src);
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
 
     switch (http_code)
@@ -95,10 +95,10 @@ Handler_Status handle_https(Context *c, Manifest_Entry *e)
         {
         default:
             c->error("Could not download file: %s. HTTP code: %d\n", e->src, http_code);
-            return Handler_Status::Error;
+            return App_Status_Code::Error;
             break;
         }
     }
 
-    return Handler_Status::OK;
+    return App_Status_Code::OK;
 }

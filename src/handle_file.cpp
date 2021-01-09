@@ -10,7 +10,7 @@
 
 namespace fs = std::filesystem;
 
-Handler_Status handle_file(Context *c, Manifest_Entry *e)
+App_Status_Code handle_file(Context *c, Manifest_Entry *e)
 {
     c->debug("About to copy %s to %s\n", e->src, e->dst, e->line_in_manifest);
     // TODO: Do modified-check before copy? Unless e.g. -f / !
@@ -26,21 +26,21 @@ Handler_Status handle_file(Context *c, Manifest_Entry *e)
 
     if(!fs::exists(e->src)) {
         c->error("No such file: %s\n", e->src);
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
     
     if(!fs::exists(fs::path(e->dst).parent_path()) && !fs::create_directories(fs::path(e->dst).parent_path()))
     {
         c->error("Could not copy file: %s, could not create directory\n", e->src);
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
 
     if(!fs::copy_file(e->src, e->dst, fs::copy_options::overwrite_existing)) {
         c->error("Could not copy file: %s\n", e->src);
-        return Handler_Status::Error;
+        return App_Status_Code::Error;
     }
 
     c->debug("Copy of %s to %s OK\n", e->src, e->dst);
 
-    return Handler_Status::OK;
+    return App_Status_Code::OK;
 }

@@ -1,11 +1,12 @@
 src_lib_files = files([
-    'app.cpp',
-    'manifest.cpp',
     'argparse.cpp',
+    'app.cpp',
     'handle_git.cpp',
     'handle_file.cpp',
     'handle_https.cpp',
+    'manifest.cpp',
     'platform.cpp',
+    'utils.cpp',
 ])
 
 deps = [
