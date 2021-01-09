@@ -4,7 +4,8 @@ project('prosit', 'cpp',
 
 subdir('src') # provides src_lib
 
-subdir('test')
+subdir('test/unit')
+subdir('test/integration')
 
 src_exe_files = files([
     'src/main.cpp',

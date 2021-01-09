@@ -1,2 +1,2 @@
 cd build
-watchexec -c --watch=.. ninja test
+watchexec -c --watch=.. --ignore=test/integration/*  "meson test --suite prosit:unit"
