@@ -1,5 +1,6 @@
-#include <cstdio>
+#include <algorithm>
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <filesystem>
 
@@ -17,7 +18,7 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
     (void)c;
     (void)m;
 
-    bool any_errors = false;;
+    bool any_errors = false;
 
     Manifest_Entry* entry;
     for (int i = 0; i < m->length; i++)
@@ -249,4 +250,22 @@ void expand_environment_vars(char *str, const size_t str_len)
         scrap[n] = '\0';
         strcpy(str, scrap);
     }
+}
+
+bool extract_login_from_uri(const char* uri, char* username_out, size_t username_len, char* password_out, size_t password_len)
+{
+    // TODO: need to be more robust
+    char protocol[16];
+    char username_buf[128] = {0};
+    char password_buf[128] = {0};
+    int matches = sscanf(uri, "%[^:]://%128[^:]:%128[^@]@", protocol, username_buf, password_buf);
+
+    if(matches != 3) {
+        return false;
+    }
+
+    strncpy(username_out, username_buf, std::min(sizeof(username_buf), username_len));
+    strncpy(password_out, password_buf, std::min(sizeof(password_buf), password_len));
+
+    return true;
 }

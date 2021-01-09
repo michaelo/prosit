@@ -61,8 +61,6 @@ struct CliArguments {
 
     bool outoftree;
     bool force;
-    // char* cwd;
-    // char* manifest_path;
 };
 
 bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
@@ -84,3 +82,4 @@ Handler_Status handle_https(Context*, Manifest_Entry*);
 //////////////////////
 bool path_is_relative_inside_workspace(const char* workspace_path, const char *path_to_check);
 void expand_environment_vars(char* str, size_t str_len);
+bool extract_login_from_uri(const char* uri, char* username_out, size_t username_len, char* password_out, size_t password_len);

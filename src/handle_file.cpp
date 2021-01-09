@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 Handler_Status handle_file(Context *c, Manifest_Entry *e)
 {
     c->debug("About to copy %s to %s\n", e->src, e->dst, e->line_in_manifest);
+    // TODO: Do modified-check before copy? Unless e.g. -f / !
 
     fs::path src_canonical = fs::weakly_canonical(e->src);
     size_t dst_len = strlen(e->dst);

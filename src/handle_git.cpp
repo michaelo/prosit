@@ -20,9 +20,7 @@
 // 
 Handler_Status handle_git(Context *c, Manifest_Entry *e)
 {
-    (void)c;
-
-    // Att! This destructs the Manifest_Entry <- thus if this for some reason is processed multiple times the behaviour is undefined
+    // Att! This modifies the Manifest_Entry <- thus if this for some reason is processed multiple times the behaviour is undefined
     char scrap[1024];
     // char *dest;
     char *ref = nullptr;
