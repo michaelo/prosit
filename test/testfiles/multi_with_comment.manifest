@@ -1,5 +1,0 @@
-# Comment here
-file: /my/file.txt > ./local/path/to/file.txt
-
-# Other comment here
-git: https://localhost:8999/dummy.git#tagv1 > ./path/to/local/clone

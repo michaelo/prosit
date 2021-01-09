@@ -1,2 +1,0 @@
-# To allow processing entries which outputs to another location outside of thw cwd of project.manifest we shall require the -f flag.
-file: /my/file/here.txt > /some/path/outside/of/prosit/tree

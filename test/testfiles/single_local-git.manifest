@@ -1,2 +1,0 @@
-# git-repo from local path
-git: /my/remote/repo.git#main > ./path/to/local/clone

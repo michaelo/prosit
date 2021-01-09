@@ -3,26 +3,40 @@
 
 #include "platform.h"
 
+
 TEST(ManifestTest, ParseEmpty)
 {
+    char manifest_empty[] = "";
     Manifest *m;
-    ASSERT_TRUE(manifest_parse("../test/testfiles/empty.manifest", &m));
+    ASSERT_TRUE(manifest_parse_buf(manifest_empty, &m));
     ASSERT_EQ(m->length, 0);
 }
 
 TEST(ManifestTest, ParseEntries)
 {
     {
+        char manifest_single_local_git[] = ""
+R"manifest(# git-repo from local path
+git: /my/remote/repo.git#main > ./path/to/local/clone
+)manifest";
+
         Manifest *m;
-        ASSERT_TRUE(manifest_parse("../test/testfiles/single_local-git.manifest", &m));
+        ASSERT_TRUE(manifest_parse_buf(manifest_single_local_git, &m));
         ASSERT_EQ(m->length, 1);
         ASSERT_STREQ(m->entries[0].type, "git");
         manifest_free(m);
     }
 
     {
+        char manifest_multi_with_comments[] = ""
+R"manifest(# Comment here
+file: /my/file.txt > ./local/path/to/file.txt
+
+# Other comment here
+git: https://localhost:8999/dummy.git#tagv1 > ./path/to/local/clone)manifest";
+
         Manifest *m;
-        ASSERT_TRUE(manifest_parse("../test/testfiles/multi_with_comment.manifest", &m));
+        ASSERT_TRUE(manifest_parse_buf(manifest_multi_with_comments, &m));
         ASSERT_EQ(m->length, 2);
         ASSERT_STREQ(m->entries[0].type, "file");
         ASSERT_STREQ(m->entries[1].type, "git");
