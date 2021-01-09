@@ -29,6 +29,8 @@ Contents-syntax (Att! subject to changes):
     file: /etc/hosts > local/hosts.txt
     # File from web
     https: http://michaelodden.com/robots.txt > robots.txt
+    # File from web w/ basic auth and env-variables
+    https: https://$(USERNAME):$(PASSWORD)@my.com/protected_file > protected_file
 
 Assuming all sources are available, and any rights etc are OK, this shall result in a directory structure like this:
 
@@ -47,7 +49,7 @@ Assuming all sources are available, and any rights etc are OK, this shall result
 Supported for v1.0:
 * git
 * file
-* https (with basic auth)
+* https/http (with basic auth)
 
 Future:
 * dir
@@ -62,7 +64,7 @@ It builds using the [Meson Build system](https://mesonbuild.com/).
     meson build
     cd build
     ninja
-    ./src/prosit --help
+    ./prosit --help
 
 ### Prerequisites
 

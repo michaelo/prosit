@@ -63,10 +63,12 @@ Handler_Status cmd_update(Context *c, CliArguments *a)
     // TODO: Make singlethreading an option, and automatically determine number of threads for mt from std::thread::hardware_concurrency();
     for (int i = 0; i < manifest->length; i++)
     {
-        // TODO: Do initial verification e.g. re dest being inside workspace or not
-        c->debug("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
+        // c->debug("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
+        // Att! Not showing src as it may contain expanded environment-variables with secrets
+        // TODO: For better output we might instead keep both strings. Or implement a masking-function.
+        c->debug("Processing: '%s' -> '%s' (entry %d, line %d)\n",
                 manifest->entries[i].type,
-                manifest->entries[i].src,
+                // manifest->entries[i].src,
                 manifest->entries[i].dst,
                 i+1,
                 manifest->entries[i].line_in_manifest);
