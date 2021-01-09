@@ -5,6 +5,7 @@
 //       Features: global flags/args, subcommands, subcommand-args/flags, version, help
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
 
 #include "app.h"
 
@@ -49,6 +50,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
     CliArguments *arguments = new CliArguments;
     defer(delete (arguments));
     memset(arguments, 0, sizeof(CliArguments));
+    char scrap[1024];
 
     // Early opt-out
     if (argc < 2)
@@ -107,6 +109,17 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         if (strcmp(argv[i], "-x") == 0 || strcmp(argv[i], "--outoftree") == 0)
         {
             arguments->outoftree = true;
+            continue;
+        }
+
+        if (strncmp(argv[i], "--manifest=", 11) == 0)
+        {
+            if(sscanf(argv[i], "--manifest=%1024s", scrap) == 1) {
+                strncpy(arguments->manifest_path, scrap, std::min(sizeof(scrap), sizeof(arguments->manifest_path)));
+            } else {
+                printf("ERROR: Could not parse value of --manifest");
+                return false;
+            }
             continue;
         }
     }

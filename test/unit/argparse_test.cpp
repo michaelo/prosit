@@ -77,6 +77,17 @@ TEST(ArgparseTest, Parse)
         ASSERT_TRUE(cli_argparse(3, argv, &result));
         ASSERT_TRUE(result->force);
     }
+
+    {
+        CliArguments *result;
+        char *argv[] = {
+            (char *)"prosit",
+            (char *)"update",
+            (char *)"--manifest=custom.project"};
+
+        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_STREQ(result->manifest_path, "custom.project");
+    }
 }
 
 int main(int argc, char **argv)

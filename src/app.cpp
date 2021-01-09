@@ -43,11 +43,11 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
     for (int i = 0; i < m->length; i++)
     {
         entry = &m->entries[i];
-        if (!path_is_relative_inside_workspace(c->manifest_path_abs, entry->dst))
+        if (!path_is_relative_inside_workspace(c->workspace_path_abs, entry->dst))
         {
             if (!a->outoftree)
             {
-                c->error("manifest line: %d: destination may point to outside of project workspace (%s and %s)\n", entry->line_in_manifest, c->manifest_path_abs, entry->dst);
+                c->error("manifest line: %d: destination may point to outside of project workspace (%s and %s)\n", entry->line_in_manifest, c->workspace_path_abs, entry->dst);
                 any_errors = true;
             }
             else
@@ -66,15 +66,16 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
 App_Status_Code cmd_update(Context *c, CliArguments *a)
 {
     Manifest *manifest;
-    if (!manifest_parse(DEFAULT_MANIFEST_NAME, &manifest))
+    if (!manifest_parse(a->manifest_path, &manifest))
     {
         c->error("Got error loading manifest - see previous message(s)\n");
         return App_Status_Code::Error;
     }
     defer(manifest_free(manifest));
 
-    strcpy(c->manifest_path_abs, (const char *)fs::absolute(fs::path(DEFAULT_MANIFEST_NAME).parent_path()).c_str());
-    c->info("workspace: %s\n", c->manifest_path_abs);
+    strcpy(c->workspace_path_abs, (const char *)fs::absolute(fs::current_path()).c_str());
+    c->info("workspace: %s\n", c->workspace_path_abs);
+    c->info("manifest: %s\n", a->manifest_path);
 
     if (!precheck_manifest(c, a, manifest))
     {
@@ -168,6 +169,10 @@ int app_main(int argc, char **argv)
     CliArguments *args;
     bool argparse_result = cli_argparse(argc, argv, &args);
     defer(if (argparse_result) delete (args));
+
+    if(strlen(args->manifest_path)==0) {
+        strncpy(args->manifest_path, DEFAULT_MANIFEST_NAME, sizeof(args->manifest_path));
+    }
 
     if (!argparse_result)
     {

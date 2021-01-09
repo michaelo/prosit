@@ -18,7 +18,7 @@ const char* app_version();
 // Alternatively, use macros which take Context* as parameter
 struct Context {
     // 
-    char manifest_path_abs[MAX_PATH_LEN]; // abs
+    char workspace_path_abs[MAX_PATH_LEN]; // abs
 
     // "Global"-ish data to pass around
     bool verbose = false;
@@ -65,6 +65,8 @@ struct CliArguments {
 
     bool outoftree;
     bool force;
+
+    char manifest_path[MAX_PATH_LEN]; // <-- buffer or ref? For lifetime's sake; buffer.
 };
 
 bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
