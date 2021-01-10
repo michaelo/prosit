@@ -85,6 +85,7 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
     // TODO: Spread out multithread?
     // Att! Undefined behaviour of multiple entries manipulates the same files/folders
     // TODO: Make singlethreading an option, and automatically determine number of threads for mt from std::thread::hardware_concurrency();
+    bool all_ok = true;
     for (int i = 0; i < manifest->length; i++)
     {
         // c->info("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
@@ -97,12 +98,15 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
                  i + 1,
                  manifest->entries[i].line_in_manifest);
 
+        // Handler-handling: Check if handler exists, if so: execute the appropriate function
         bool handler_found = false;
         for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
         {
             if (strcmp(manifest->entries[i].type, handlers[j].type) == 0)
             {
-                handlers[j].handler(c, &manifest->entries[i]);
+                if(handlers[j].handler(c, &manifest->entries[i]) != App_Status_Code::OK) {
+                    all_ok = false;
+                }
                 handler_found = true;
                 break;
             }
@@ -117,7 +121,7 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         }
     }
 
-    return App_Status_Code::OK;
+    return all_ok ? App_Status_Code::OK : App_Status_Code::Error;
 }
 
 static void print_debug(const char *format, ...)

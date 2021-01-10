@@ -31,11 +31,12 @@ TEST(MainTest, do_nothing_with_empty_manifest)
 TEST(MainTest, test_https)
 {
     char tmppath[L_tmpnam];
+    fs::path initial_path = fs::current_path();
 
     {
-        printf("Tmpdir: %s\n", tmppath);
         setup(tmppath);
         defer(teardown(tmppath));
+        defer(fs::current_path(initial_path));
 
         fs::path manifest_path = fs::canonical("../test/integration/testfiles/empty.manifest");
 
@@ -49,11 +50,78 @@ TEST(MainTest, test_https)
     }
 
     // Get file from plain http
+    // TODO
+
     // Get unprotected file from https
+    {
+        setup(tmppath);
+        defer(teardown(tmppath));
+        defer(fs::current_path(initial_path));
+
+        fs::path manifest_path = fs::canonical("../test/integration/testfiles/https.manifest");
+
+        char manifest_arg[1024];
+        snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.c_str());
+        fs::current_path(tmppath);
+        assert(app_main(3, (char *[]){
+                               (char *)"prosit",
+                               (char *)"update",
+                               (char *)manifest_arg}) == App_Status_Code::OK);
+    }
+
     // Get basic auth protected http file
+    // TODO
+    
     // Get basic auth protected https file
+    {
+        setup(tmppath);
+        defer(teardown(tmppath));
+        defer(fs::current_path(initial_path));
+
+        fs::path manifest_path = fs::canonical("../test/integration/testfiles/https_basic_auth.manifest");
+
+        char manifest_arg[1024];
+        snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.c_str());
+        fs::current_path(tmppath);
+        assert(app_main(3, (char *[]){
+                               (char *)"prosit",
+                               (char *)"update",
+                               (char *)manifest_arg}) == App_Status_Code::OK);
+    }
+
     // Fails if no auth-details provided for auth protected file
-    // ASSERT_TRUE(false);
+    {
+        setup(tmppath);
+        defer(teardown(tmppath));
+        defer(fs::current_path(initial_path));
+
+        fs::path manifest_path = fs::canonical("../test/integration/testfiles/https_basic_auth_missing_login.manifest");
+
+        char manifest_arg[1024];
+        snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.c_str());
+        fs::current_path(tmppath);
+        assert(app_main(3, (char *[]){
+                               (char *)"prosit",
+                               (char *)"update",
+                               (char *)manifest_arg}) != App_Status_Code::OK);
+    }
+
+    // Fails if incorrect auth-details provided for auth protected file
+    {
+        setup(tmppath);
+        defer(teardown(tmppath));
+        defer(fs::current_path(initial_path));
+
+        fs::path manifest_path = fs::canonical("../test/integration/testfiles/https_basic_auth_incorrect_login.manifest");
+
+        char manifest_arg[1024];
+        snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.c_str());
+        fs::current_path(tmppath);
+        assert(app_main(3, (char *[]){
+                               (char *)"prosit",
+                               (char *)"update",
+                               (char *)manifest_arg}) != App_Status_Code::OK);
+    }
 }
 
 TEST(MainTest, test_file)

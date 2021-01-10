@@ -89,6 +89,7 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
             if (code.value() != 0)
             {
                 c->error("Could not download file: %s. Uanble to copy temporary file to destination.\n", e->src);
+                return App_Status_Code::Error;
             }
             break;
         }
