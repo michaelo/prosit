@@ -1,0 +1,2 @@
+file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > ./
+file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > folder/

@@ -17,6 +17,7 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
 
     fs::path src_canonical = fs::weakly_canonical(e->src);
     size_t dst_len = strlen(e->dst);
+    // std::error_code error_code; // TODO: get rid of std-exceptions.
 
     if(e->dst[strlen(e->dst)-1] == '/') {
         // TODO: Ensure we're within buffer size
@@ -28,8 +29,10 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
         c->error("No such file: %s\n", e->src);
         return App_Status_Code::Error;
     }
-    
-    if(!fs::exists(fs::path(e->dst).parent_path()) && !fs::create_directories(fs::path(e->dst).parent_path()))
+
+    fs::path dst_folder = fs::weakly_canonical(e->dst).parent_path();
+
+    if(!fs::exists(dst_folder) && !fs::create_directories(dst_folder))
     {
         c->error("Could not copy file: %s, could not create directory\n", e->src);
         return App_Status_Code::Error;
