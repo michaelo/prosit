@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 static struct
 {
-    // TODO: We must provide locking on actual *out when we go mt. Revise. 
+    // TODO: We must provide locking on actual *out when we go mt. Revise.
     FILE *debug = stdout;
     FILE *info = stdout;
     FILE *error = stderr;
@@ -92,11 +92,11 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         // Att! Not showing src now as it may contain expanded environment-variables with secrets
         // TODO: For better output we might instead keep both strings. Or implement a masking-function.
         c->info("Processing: '%s' -> '%s' (entry %d, line %d)\n",
-                 manifest->entries[i].type,
-                 // manifest->entries[i].src,
-                 manifest->entries[i].dst,
-                 i + 1,
-                 manifest->entries[i].line_in_manifest);
+                manifest->entries[i].type,
+                // manifest->entries[i].src,
+                manifest->entries[i].dst,
+                i + 1,
+                manifest->entries[i].line_in_manifest);
 
         // Handler-handling: Check if handler exists, if so: execute the appropriate function
         bool handler_found = false;
@@ -104,7 +104,8 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         {
             if (strcmp(manifest->entries[i].type, handlers[j].type) == 0)
             {
-                if(handlers[j].handler(c, &manifest->entries[i]) != App_Status_Code::OK) {
+                if (handlers[j].handler(c, &manifest->entries[i]) != App_Status_Code::OK)
+                {
                     all_ok = false;
                 }
                 handler_found = true;
@@ -165,7 +166,7 @@ void context_init(Context *c)
 }
 
 // Main library entry point
-int app_main(int argc, char **argv)
+App_Status_Code app_main(int argc, char **argv)
 {
     Context c;
     context_init(&c);
@@ -174,13 +175,14 @@ int app_main(int argc, char **argv)
     bool argparse_result = cli_argparse(argc, argv, &args);
     defer(if (argparse_result) delete (args));
 
-    if(strlen(args->manifest_path)==0) {
-        strncpy(args->manifest_path, DEFAULT_MANIFEST_NAME, sizeof(args->manifest_path));
-    }
-
     if (!argparse_result)
     {
-        return -1;
+        return App_Status_Code::Error;
+    }
+
+    if (strlen(args->manifest_path) == 0)
+    {
+        strncpy(args->manifest_path, DEFAULT_MANIFEST_NAME, sizeof(args->manifest_path));
     }
 
     // Configure output-handling based on cli-args
@@ -191,7 +193,7 @@ int app_main(int argc, char **argv)
     switch (args->command)
     {
     case Update:
-        return (int)cmd_update(&c, args);
+        return cmd_update(&c, args);
         break;
     default:
         // Should not happen as this is already handled in cli_argparse

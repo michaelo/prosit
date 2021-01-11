@@ -11,14 +11,20 @@ static const int MAX_TYPE_LEN = 16;
 //////////////////////
 // Entry point API
 //////////////////////
-int app_main(int argc, char** argv);
+enum App_Status_Code {
+    OK = 0,
+    Error,
+};
+
+App_Status_Code app_main(int argc, char** argv);
 const char* app_version();
 
 // This might actually make sense to make class of
 // Alternatively, use macros which take Context* as parameter
 struct Context {
-    // 
-    char workspace_path_abs[MAX_PATH_LEN]; // abs
+    // The cwd when executing will be treated as the workspace of your project and 
+    // serve as a "root"-folder.
+    char workspace_path_abs[MAX_PATH_LEN];
 
     // "Global"-ish data to pass around
     bool verbose = false;
@@ -74,11 +80,6 @@ bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
 //////////////////////
 // Handlers
 //////////////////////
-enum App_Status_Code {
-    OK = 0,
-    Error,
-};
-
 App_Status_Code handle_git(Context*, Manifest_Entry*);
 App_Status_Code handle_file(Context*, Manifest_Entry*);
 App_Status_Code handle_https(Context*, Manifest_Entry*);

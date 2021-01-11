@@ -26,7 +26,7 @@ void teardown(char *tmppath)
     assert(fs::remove_all(tmppath) > 0);
 }
 
-int basic_app_main_run(const char* manifest) {
+App_Status_Code basic_app_main_run(const char* manifest) {
     char tmppath[L_tmpnam];
     fs::path initial_path = fs::current_path();
     fs::path manifest_path = fs::canonical(manifest);

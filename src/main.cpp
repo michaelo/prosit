@@ -3,5 +3,5 @@
 
 // Only to serve as an entry point for the compiled executable. Get Out Of The Way Fast.
 int main(int argc, char** argv) {
-    return app_main(argc, argv);
+    return (int)app_main(argc, argv);
 }

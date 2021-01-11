@@ -32,16 +32,17 @@ Subcommands:
 
 Global args:
     -h, --help     This help
-        --version  Version
-    -v, --verbose  Show debug output
-    -s, --silent   Suppress all output except error messages
     -f, --force    Override in case of destructive actions
+        --manifest Override default manifest name/path (default: %s)
     -x, --outoftree     Required for manifests specifying destinations outside of the
                         directory of the manifest
+    -s, --silent   Suppress all output except error messages
+    -v, --verbose  Show debug output
+        --version  Version
 
 (c) Michael Odden - https://github.com/michaelo/prosit
 )help",
-           APP_NAME, app_version(), APP_NAME);
+           APP_NAME, app_version(), APP_NAME, DEFAULT_MANIFEST_NAME);
 }
 
 // arguments_out must be freed if function returns true
@@ -55,7 +56,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
     // Early opt-out
     if (argc < 2)
     {
-        printf("ERROR: Not enough parameters\n");
+        printf("ERROR: Not enough parameters. Try %s --help.\n", argv[0]);
         return false;
     }
 
@@ -114,9 +115,12 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
 
         if (strncmp(argv[i], "--manifest=", 11) == 0)
         {
-            if(sscanf(argv[i], "--manifest=%1024s", scrap) == 1) {
+            if (sscanf(argv[i], "--manifest=%1024s", scrap) == 1)
+            {
                 strncpy(arguments->manifest_path, scrap, std::min(sizeof(scrap), sizeof(arguments->manifest_path)));
-            } else {
+            }
+            else
+            {
                 printf("ERROR: Could not parse value of --manifest");
                 return false;
             }

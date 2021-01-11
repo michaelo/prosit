@@ -1,26 +1,19 @@
 # TODO
 
 ## Now
-* Settle on format and name for manifest-file
+* Consider if project.manifest should be prosit.manifest to reduce collision-risk
 * Automatic builds to generate binaries for common platforms:
   * x64 Windows
   * x64 macOS
   * x64 Linux
-* Implement git support
-* Implement file support
-* Implement HTTP/S support w/ basic auth
-* Manifest: error handling for invalid definitions
-
 
 ## Now or future
 * Implement hg support
 * Implement dir support
 * Implement support for other data sources?
 * Manifest: Support groups to allow only processing certain sets of entries. Syntax?
-* HTTP/S authentication methods:
-    * Basic auth
+* More HTTP/S authentication methods:
     * Bearer?
-    * NTLM?
     - Evaluate e.g. what Artifactory and such uses
 
 ## Future
