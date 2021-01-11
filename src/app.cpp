@@ -188,6 +188,10 @@ App_Status_Code app_main(int argc, char **argv)
     OutputStreams.debug = args->verbose ? stdout : nullptr;
     OutputStreams.info = args->silent ? nullptr : stdout;
 
+    // Only the context is passed on to most places
+    c.silent = args->silent;
+    c.verbose = args->verbose;
+
     // Check command and start processing
     switch (args->command)
     {

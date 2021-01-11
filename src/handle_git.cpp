@@ -33,7 +33,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
 
     // If dest does not exist: clone
     if(!std::filesystem::exists(e->dst)) {
-        snprintf((char *)scrap, sizeof(scrap), "git clone %s %s", e->src, e->dst);
+        snprintf((char *)scrap, sizeof(scrap), "git clone %s %s %s", e->src, e->dst, c->silent ? "-q" : "");
         printf("About to execute: %s\n", scrap);
         if (std::system(scrap) != 0)
         {
@@ -52,7 +52,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
             c->debug("Dest exists... Let's pull instead\n");
             std::filesystem::current_path(e->dst);
 
-            snprintf((char *)scrap, sizeof(scrap), "git pull");
+            snprintf((char *)scrap, sizeof(scrap), "git pull %s", c->silent ? "-q" : "");
             c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().u8string().c_str());
             if (std::system(scrap) != 0)
             {
@@ -73,7 +73,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
         defer(std::filesystem::current_path(cwd));
 
         std::filesystem::current_path(e->dst);
-        snprintf((char *)scrap, sizeof(scrap), "git checkout %s", ref);
+        snprintf((char *)scrap, sizeof(scrap), "git checkout %s %s", ref, c->silent ? "-q" : "");
         c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().u8string().c_str());
         if (std::system(scrap) != 0)
         {
