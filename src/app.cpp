@@ -88,12 +88,10 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
     bool all_ok = true;
     for (int i = 0; i < manifest->length; i++)
     {
-        // c->info("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
-        // Att! Not showing src now as it may contain expanded environment-variables with secrets
-        // TODO: For better output we might instead keep both strings. Or implement a masking-function.
-        c->info("Processing: '%s' -> '%s' (entry %d, line %d)\n",
+        // TODO: src may contain username/password, this must be masked
+        c->info("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
                 manifest->entries[i].type,
-                // manifest->entries[i].src,
+                manifest->entries[i].src,
                 manifest->entries[i].dst,
                 i + 1,
                 manifest->entries[i].line_in_manifest);

@@ -6,6 +6,8 @@
   * x64 Windows
   * x64 macOS
   * x64 Linux
+* Investigate valgrind-warnings re: libcurl-usage ("Use of uninitialised value of size 8")
+* Add argument to control if it shall quit at first error?
 
 ## Now or future
 * Implement hg support

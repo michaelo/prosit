@@ -7,8 +7,6 @@
 
 #include "mlib/defer.imp.h"
 
-// TODO: output inside handlers should really only be for verbose as this gets messy when multithreading.
-
 // Main entry point for updating a git-entry
 // 
 // * Extracts the (for now optional) reference-part from src

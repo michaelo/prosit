@@ -8,6 +8,7 @@ common_files = [
 
 tests_files = [
     'linkage_test.cpp',
+    'main_test.cpp',
     'file_test.cpp',
     'git_test.cpp',
     'https_test.cpp',

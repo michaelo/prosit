@@ -7,6 +7,7 @@
 #include "mlib/utils.imp.h"
 #include "mlib/defer.imp.h"
 
+// manifest_out must be freed if function returns true
 bool manifest_parse_buf(char *buf, Manifest **manifest_out)
 {
     Manifest *manifest = new Manifest;
@@ -39,7 +40,6 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
             }
         }
 
-        // TODO: Error handling (syntax-errors)
         int num_matches = sscanf(line, "%[^:]: %[^>] > %[^\n]", (char *)&manifest->entries[num_entries].type, (char *)&manifest->entries[num_entries].src, (char *)&manifest->entries[num_entries].dst);
 
         if (num_matches < 3)
@@ -67,7 +67,6 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
     return !any_errors;
 }
 
-// TODO: Parse directly from buf, to remove dependencies on files for e.g. tests?
 // manifest_out must be freed if function returns true
 bool manifest_parse(const char *path, Manifest **manifest_out)
 {

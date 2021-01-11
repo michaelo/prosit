@@ -1,8 +1,6 @@
 //
 // Basic hand-rolled argparser
 //
-// TODO: Generalize for other CLI-apps. Datastructure as template-arg, lambdas as callbacks for argument-matches
-//       Features: global flags/args, subcommands, subcommand-args/flags, version, help
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -106,7 +104,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
             continue;
         }
 
-        // TODO: Consider moving to only applicable subcommands
+        // TODO: Consider moving to only applicable subcommands if relevant in the future
         if (strcmp(argv[i], "-x") == 0 || strcmp(argv[i], "--outoftree") == 0)
         {
             arguments->outoftree = true;

@@ -20,7 +20,6 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
     // std::error_code error_code; // TODO: get rid of std-exceptions.
 
     if(e->dst[strlen(e->dst)-1] == '/') {
-        // TODO: Ensure we're within buffer size
         assert(sizeof(e->dst) > dst_len+src_canonical.filename().string().length());
         strcpy(&e->dst[strlen(e->dst)], (const char*)src_canonical.filename().c_str());
     }

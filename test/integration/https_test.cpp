@@ -12,12 +12,6 @@ namespace fs = std::filesystem;
 
 TEST(HttpsTest, test_https)
 {
-    // TODO: Check resulting contents instead of just the return code.
-
-    // TODO: Move to generic test-suite
-    ASSERT_EQ(basic_app_main_run("../test/integration/testfiles/empty.manifest"), App_Status_Code::OK);
-
-
     // Get file from plain http
     // TODO
 
