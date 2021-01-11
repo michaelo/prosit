@@ -26,12 +26,11 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
     //   this to ensure there are no relative-tricks mid-string.
     //   TBD: Might simply be solved by checking for any occurrence of ".."
     char joint_path[MAX_PATH_LEN];
-    snprintf(joint_path, sizeof(joint_path), "%s%s", workspace_path, path_to_check);
+    snprintf(joint_path, sizeof(joint_path), "%s/%s", workspace_path, path_to_check);
     fs::path abs = fs::weakly_canonical(joint_path);
-    const char *abs_path = (const char*)abs.c_str();
+    const char *abs_path = (const char*)abs.u8string().c_str();
     if (strstr(abs_path, workspace_path) != abs_path)
     {
-        printf("must be here: %s - %s vs %s\n", joint_path, abs_path, workspace_path);
         return false; // abs_path doesn't start with manifest_path_abs
     }
 
@@ -49,7 +48,7 @@ void expand_environment_vars(char *str, const size_t str_len)
     char scrap[SCRAP_LEN];
     size_t n = 0; // byte count for expanded string
 
-    char *sym = sym;
+    char *sym;
     char *env;
 
     char symbuf[128];

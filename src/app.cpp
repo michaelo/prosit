@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <functional>
 
 #include "app.h"
 #include <prosit_config.h>
@@ -73,7 +74,7 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
     }
     defer(manifest_free(manifest));
 
-    strcpy(c->workspace_path_abs, (const char *)fs::absolute(fs::current_path()).c_str());
+    strcpy(c->workspace_path_abs, (const char *)fs::absolute(fs::current_path()).u8string().c_str());
     c->info("workspace: %s\n", c->workspace_path_abs);
     c->info("manifest: %s\n", a->manifest_path);
 

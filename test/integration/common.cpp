@@ -6,6 +6,7 @@
 
 #include "app.h"
 #include "mlib/defer.imp.h"
+#include "platform.h"
 
 namespace fs = std::filesystem;
 
@@ -31,7 +32,7 @@ App_Status_Code basic_app_main_run(const char* manifest) {
     fs::path initial_path = fs::current_path();
     fs::path manifest_path = fs::canonical(manifest);
     fs::path testfiles_path = fs::canonical("../test/integration/testfiles");
-    setenv("PROSIT_ITEST_TESTFILES", testfiles_path.c_str(), 1);
+    setenv("PROSIT_ITEST_TESTFILES", (char*)testfiles_path.u8string().c_str(), 1);
 
     // TODO: Check resulting contents instead of just the return code.
 
@@ -45,7 +46,7 @@ App_Status_Code basic_app_main_run(const char* manifest) {
     defer(fs::current_path(initial_path));
 
     char manifest_arg[1024];
-    snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.c_str());
+    snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.u8string().c_str());
     fs::current_path(tmppath);
     argv[2] = manifest_arg;
 

@@ -14,15 +14,15 @@ inline char* strtok_r(char* str, const char* sep, char** save)
 }
 #endif
 
-inline char *file_to_buf(const char *path, size_t *size_out = NULL)
+inline char *file_to_buf(const char *path, size_t *size_out = nullptr)
 {
-    FILE *fp = fopen(path, "r");
-    defer(fclose(fp));
-
-    if (fp == NULL)
+    // TODO: Consider rb vs r and rather handle size by reading byte-by-byte.
+    FILE *fp = fopen(path, "rb");
+    if (fp == nullptr)
     {
-        return NULL;
+        return nullptr;
     }
+    defer(fclose(fp));
 
     fseek(fp, 0L, SEEK_END);
     long raw_size = ftell(fp);
@@ -32,7 +32,7 @@ inline char *file_to_buf(const char *path, size_t *size_out = NULL)
     fread(filebuf, raw_size, 1, fp);
     filebuf[raw_size] = '\0';
 
-    if (size_out != NULL)
+    if (size_out != nullptr)
         *size_out = raw_size;
     return filebuf; // must free
 }

@@ -15,7 +15,7 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
     int num_entries = 0;
     int line_no = 0;
     bool any_errors = false;
-    buf_pr_token(buf, "\n", [manifest, &any_errors, &num_entries, &line_no](char *line) {
+    buf_pr_token(buf, "\r\n", [manifest, &any_errors, &num_entries, &line_no](char *line) {
         line_no++;
         size_t line_len = strlen(line);
         // Ignore comment-lines

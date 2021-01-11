@@ -53,7 +53,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
             std::filesystem::current_path(e->dst);
 
             snprintf((char *)scrap, sizeof(scrap), "git pull");
-            c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().c_str());
+            c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().u8string().c_str());
             if (std::system(scrap) != 0)
             {
                 c->error("Got error executing git pull. See message(s) above.\n");
@@ -74,7 +74,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
 
         std::filesystem::current_path(e->dst);
         snprintf((char *)scrap, sizeof(scrap), "git checkout %s", ref);
-        c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().c_str());
+        c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().u8string().c_str());
         if (std::system(scrap) != 0)
         {
             printf("ERROR: Got error executing git checkout. See message(s) above.\n");

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <filesystem>
 #include <cassert>
+#include <iostream>
 
 #include "app.h"
 
@@ -15,13 +16,13 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
     c->debug("About to copy %s to %s\n", e->src, e->dst, e->line_in_manifest);
     // TODO: Do modified-check before copy? Unless e.g. -f / !
 
-    fs::path src_canonical = fs::weakly_canonical(e->src);
+    fs::path src_canonical = fs::canonical(e->src);
     size_t dst_len = strlen(e->dst);
     // std::error_code error_code; // TODO: get rid of std-exceptions.
 
     if(e->dst[strlen(e->dst)-1] == '/') {
         assert(sizeof(e->dst) > dst_len+src_canonical.filename().string().length());
-        strcpy(&e->dst[strlen(e->dst)], (const char*)src_canonical.filename().c_str());
+        strcpy(&e->dst[strlen(e->dst)], (const char*)src_canonical.filename().u8string().c_str());
     }
 
     if(!fs::exists(e->src)) {
