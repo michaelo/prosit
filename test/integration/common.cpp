@@ -28,6 +28,8 @@ void teardown(char *tmppath)
 }
 
 App_Status_Code basic_app_main_run(const char* manifest) {
+    // TBD: Take manifest as buffer and write to file?
+    //      And accept argument of expected result-tree for basic verification?
     char tmppath[L_tmpnam];
     fs::path initial_path = fs::current_path();
     fs::path manifest_path = fs::canonical(manifest);

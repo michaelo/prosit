@@ -10,6 +10,7 @@
 * Add argument to control if it shall quit at first error?
 
 ## Now or future
+* Extraction of .zip, .tar and .tar.gz (Solve as entry annotation?)
 * Implement hg support
 * Implement dir support
 * Implement support for other data sources?

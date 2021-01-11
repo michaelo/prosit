@@ -2,7 +2,7 @@ project('prosit', 'cpp',
   version : '0.1.0',
   default_options : [
     'warning_level=3',
-    meson.get_compiler('cpp').get_id() == 'msvc' ? 'cpp_std=vc++latest' : ''])
+    meson.get_compiler('cpp').get_id() == 'msvc' ? 'cpp_std=vc++latest' : 'cpp_std=c++17'])
 
 subdir('src') # provides src_lib
 
