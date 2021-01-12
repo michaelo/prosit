@@ -29,7 +29,7 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
     //       Will most likely be platform-dependent
     char tmp_name[L_tmpnam];
     tmpnam(tmp_name);
-    FILE *file = fopen(tmp_name, "w");
+    FILE *file = fopen(tmp_name, "wb");
     if (!file)
     {
         c->error("Could not open temp-file for writing: %s\n", tmp_name);

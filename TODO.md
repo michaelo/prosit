@@ -1,6 +1,7 @@
 # TODO
 
-## Now
+## Features
+### Now
 * Consider if project.manifest should be prosit.manifest to reduce collision-risk
 * Automatic builds to generate binaries for common platforms:
   * x64 Windows
@@ -9,7 +10,7 @@
 * Investigate valgrind-warnings re: libcurl-usage ("Use of uninitialised value of size 8")
 * Add argument to control if it shall quit at first error?
 
-## Now or future
+### Now or future
 * Extraction of .zip, .tar and .tar.gz (Solve as entry annotation?)
 * Implement hg support
 * Implement dir support
@@ -19,7 +20,7 @@
     * Bearer?
     - Evaluate e.g. what Artifactory and such uses
 
-## Future
+### Future
 * Recursive processing? I.e. if a pulled resource contains `project.manifest` - shall we process it?
   * Concerns:
     * Increases importance of ensuring our system()-calls are safe as we pass in strings from the manifest as parameters.
@@ -30,4 +31,8 @@
 * Manifest: Support annotations to entries, e.g:
   * !: same as -f, but for single entry
   * r: recursive, if dependency contains a project.manifest, then process it
+  * x: extract if archive
   * ... 
+
+## General / techdebt
+* Clean up use of std. Make more consistent how and when it's used. Right now there are a lot of mix between char*, std::string and std::filesyste::path.
