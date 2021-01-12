@@ -12,8 +12,19 @@ namespace fs = std::filesystem;
 
 TEST(FileTst, test_file)
 {
+    char** tmppath;
+
     // Verify clone of remote git repo
-    ASSERT_EQ(basic_app_main_run("../test/integration/testfiles/git_remote.manifest"), App_Status_Code::OK);
+    {
+        ASSERT_EQ(basic_app_main_run_no_teardown("../test/integration/testfiles/git_remote.manifest", tmppath), App_Status_Code::OK);
+        defer({
+            teardown(*tmppath);
+            delete(*tmppath);
+        });
+        
+        ASSERT_TRUE(file_exists_in_path(*tmppath, "cloned/to/prosit/.git"));
+        ASSERT_TRUE(file_exists_in_path(*tmppath, "cloned/to/prosit/README.md"));
+    }
 
     // Verify update existing clone
 
