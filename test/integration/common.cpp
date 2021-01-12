@@ -12,11 +12,11 @@ namespace fs = std::filesystem;
 
 // TODO: Replace tmpnam() with appropriate non-obsolete substitutes
 
-bool file_exists_in_path(char *tmppath, char* relpath)
+bool file_exists_in_path(const char *tmppath, const char* relpath)
 {
     char fullpath[2048];
     fullpath[0] = '\0';
-    snprintf(fullpath, sizeof(fullpath), "%s/%s", tmppath, relpath);
+    snprintf((char*)fullpath, sizeof(fullpath), "%s/%s", tmppath, relpath);
     std::error_code error_code;
     return fs::exists(fullpath, error_code);
 }

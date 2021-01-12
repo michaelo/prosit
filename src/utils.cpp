@@ -28,7 +28,7 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
     char joint_path[MAX_PATH_LEN];
     snprintf(joint_path, sizeof(joint_path), "%s/%s", workspace_path, path_to_check);
     fs::path abs = fs::weakly_canonical(joint_path);
-    std::string abs_path_str = abs.u8string();
+    auto abs_path_str = abs.u8string();
     const char *abs_path = (const char*)abs_path_str.c_str();
     if (strstr(abs_path, workspace_path) != abs_path)
     {
