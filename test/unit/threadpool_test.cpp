@@ -50,6 +50,42 @@ void pool_worker(Thread_Pool_Context<Data>* tpc, std::function<void(Data)> handl
     }
 }
 
+// Precondition: pool.queue is filled
+template<typename Data>
+void pool_run(Thread_Pool_Context<Data>* tpc, size_t num_threads, std::function<void(Data)> func) {
+    // tpc->threads
+    for (size_t i = 0; i < num_threads; i++)
+    {
+        tpc->threads.push_back(std::thread([&tpc, func]() {
+            pool_worker<Data>(tpc, func);
+        }));
+    }
+
+    for (auto &i : tpc->threads)
+    {
+        i.join();
+    }
+}
+
+
+TEST(ThreadPoolTest, Experimentation2)
+{
+    Thread_Pool_Context<int> pool;
+    pool.queue.push(1);
+    pool.queue.push(2);
+    pool.queue.push(3);
+
+    int result = 0;
+
+    pool_run<int>(&pool, std::thread::hardware_concurrency(), [&result](int data) {
+                result += data;
+            });
+
+    ASSERT_EQ(result, 6);
+}
+
+
+
 TEST(ThreadPoolTest, Experimentation)
 {
     Thread_Pool_Context<int> pool;
