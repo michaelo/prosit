@@ -71,12 +71,10 @@ void expand_environment_vars(char *str, const size_t str_len)
                     memcpy(symbuf, sym, sym_len);
                     symbuf[sym_len] = '\0';
 
-                    // printf("Got match: %s\n", symbuf);
                     env = getenv(symbuf);
 
                     if (env != nullptr)
                     {
-                        // printf(" match in env: %s\n", env);
                         size_t env_len = strlen(env);
                         any_expansions = true;
                         memcpy(scrap + n, env, env_len); // Don't want \0

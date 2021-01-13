@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include <functional>
+#include <mutex>
 
 #include "app.h"
 #include <prosit_config.h>
@@ -16,6 +17,7 @@ namespace fs = std::filesystem;
 static struct
 {
     // TODO: We must provide locking on actual *out when we go mt. Revise.
+    std::mutex lock;
     FILE *debug = stdout;
     FILE *info = stdout;
     FILE *error = stderr;
@@ -61,6 +63,29 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
     return !any_errors;
 }
 
+bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
+    // TODO: src may contain username/password, this must be masked
+    c->info("Processing: '%s' '%s' -> '%s' (line %d)\n",
+            entry->type,
+            entry->src,
+            entry->dst,
+            entry->line_in_manifest);
+
+    // Handler-handling: Check if handler exists, if so: execute the appropriate function
+    bool handler_found = false;
+    for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
+    {
+        if (strcmp(entry->type, handlers[j].type) == 0)
+        {
+            return (handlers[j].handler(c, entry) != App_Status_Code::OK);
+        }
+    }
+
+    c->error("Unsupported handler type: %s  (line %d)\n",
+                entry->type,
+                entry->line_in_manifest);
+}
+
 // Main entry point for the subcommand "update"
 //      Parse manifest
 //      For each entry in manifest, execute the type-specific handle_<type>-function
@@ -89,35 +114,8 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
     bool all_ok = true;
     for (int i = 0; i < manifest->length; i++)
     {
-        // TODO: src may contain username/password, this must be masked
-        c->info("Processing: '%s' '%s' -> '%s' (entry %d, line %d)\n",
-                manifest->entries[i].type,
-                manifest->entries[i].src,
-                manifest->entries[i].dst,
-                i + 1,
-                manifest->entries[i].line_in_manifest);
-
-        // Handler-handling: Check if handler exists, if so: execute the appropriate function
-        bool handler_found = false;
-        for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
-        {
-            if (strcmp(manifest->entries[i].type, handlers[j].type) == 0)
-            {
-                if (handlers[j].handler(c, &manifest->entries[i]) != App_Status_Code::OK)
-                {
-                    all_ok = false;
-                }
-                handler_found = true;
-                break;
-            }
-        }
-
-        if (!handler_found)
-        {
-            c->error("Unsupported handler type: %s  (entry %d, line %d)\n",
-                     manifest->entries[i].type,
-                     i + 1,
-                     manifest->entries[i].line_in_manifest);
+        if(!cmd_update_process_entry(c, &manifest->entries[i])) {
+            all_ok = false;
         }
     }
 
@@ -128,6 +126,10 @@ static void print_debug(const char *format, ...)
 {
     if (!OutputStreams.debug)
         return;
+
+    OutputStreams.lock.lock();
+    defer(OutputStreams.lock.unlock());
+
     va_list args;
     va_start(args, format);
     fprintf(OutputStreams.debug, "DEBUG: ");
@@ -139,6 +141,10 @@ static void print_info(const char *format, ...)
 {
     if (!OutputStreams.info)
         return;
+
+    OutputStreams.lock.lock();
+    defer(OutputStreams.lock.unlock());
+
     va_list args;
     va_start(args, format);
     fprintf(OutputStreams.info, "INFO: ");
@@ -150,6 +156,10 @@ static void print_error(const char *format, ...)
 {
     if (!OutputStreams.error)
         return;
+
+    OutputStreams.lock.lock();
+    defer(OutputStreams.lock.unlock());
+
     va_list args;
     va_start(args, format);
     fprintf(OutputStreams.error, "ERROR: ");

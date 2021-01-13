@@ -34,10 +34,10 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
     // If dest does not exist: clone
     if(!std::filesystem::exists(e->dst)) {
         snprintf((char *)scrap, sizeof(scrap), "git clone %s %s %s", e->src, e->dst, c->silent ? "-q" : "");
-        printf("About to execute: %s\n", scrap);
+        c->info("About to execute: %s\n", scrap);
         if (std::system(scrap) != 0)
         {
-            printf("ERROR: Got error executing git clone. See message(s) above.\n");
+            c->error("Got error executing git clone. See message(s) above.\n");
             return App_Status_Code::Error;
         }
     } else {
@@ -77,7 +77,7 @@ App_Status_Code handle_git(Context *c, Manifest_Entry *e)
         c->debug("About to execute: %s (cwd: %s)\n", scrap, std::filesystem::current_path().u8string().c_str());
         if (std::system(scrap) != 0)
         {
-            printf("ERROR: Got error executing git checkout. See message(s) above.\n");
+            c->error("Got error executing git checkout. See message(s) above.\n");
         }
     }
 
