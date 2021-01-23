@@ -79,17 +79,26 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
         c->error("Could not download file: %s\n", e->src);
         return App_Status_Code::Error;
     }
-
     switch (http_code)
     {
         {
         case 200:
             // Store data
-            std::error_code code;
-            fs::copy(tmp_name, e->dst, fs::copy_options::overwrite_existing, code);
-            if (code.value() != 0)
+            std::error_code error_code;
+            fs::path dst_folder = fs::weakly_canonical(e->dst, error_code).parent_path();
+
+            if(!fs::exists(dst_folder, error_code) && !fs::create_directories(dst_folder, error_code))
             {
-                c->error("Could not download file: %s. Unable to copy temporary file to destination. (%s)\n", e->src, code.message().c_str());
+                c->error("Could not download file: %s. Could not create destination directory\n", e->src);
+                return App_Status_Code::Error;
+            }
+
+
+            fs::copy(tmp_name, e->dst, fs::copy_options::overwrite_existing, error_code);
+            if (error_code.value() != 0)
+            {
+                c->error("Could not download file: %s. Unable to copy temporary file to destination. (%s)\n", e->src, error_code.message().c_str());
+                c->debug("Temporary file: %s\n", tmp_name);
                 return App_Status_Code::Error;
             }
             break;
