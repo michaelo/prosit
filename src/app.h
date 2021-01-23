@@ -44,6 +44,7 @@ struct Manifest_Entry {
     char type[MAX_TYPE_LEN];
     char src[MAX_PATH_LEN];
     char dst[MAX_PATH_LEN];
+    bool failed;
 };
 
 struct Manifest {
@@ -71,6 +72,7 @@ struct CliArguments {
 
     bool outoftree;
     bool force;
+    bool multithreaded;
 
     char manifest_path[MAX_PATH_LEN]; // <-- buffer or ref? For lifetime's sake; buffer.
 };

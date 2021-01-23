@@ -32,6 +32,7 @@ Global args:
     -h, --help     This help
     -f, --force    Override in case of destructive actions
         --manifest Override default manifest name/path (default: %s)
+    -m  --multithreaded Processes entries multithreaded based on number of hw threads
     -x, --outoftree     Required for manifests specifying destinations outside of the
                         directory of the manifest
     -s, --silent   Suppress all output except error messages
@@ -108,6 +109,12 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         if (strcmp(argv[i], "-x") == 0 || strcmp(argv[i], "--outoftree") == 0)
         {
             arguments->outoftree = true;
+            continue;
+        }
+
+        if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--multithreaded") == 0)
+        {
+            arguments->multithreaded = true;
             continue;
         }
 

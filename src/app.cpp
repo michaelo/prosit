@@ -12,6 +12,8 @@
 #include "mlib/utils.imp.h"
 #include "mlib/defer.imp.h"
 
+#include "threadpool.imp.h"
+
 namespace fs = std::filesystem;
 
 static struct
@@ -72,18 +74,18 @@ bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
             entry->line_in_manifest);
 
     // Handler-handling: Check if handler exists, if so: execute the appropriate function
-    bool handler_found = false;
     for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
     {
         if (strcmp(entry->type, handlers[j].type) == 0)
         {
-            return (handlers[j].handler(c, entry) != App_Status_Code::OK);
+            return (handlers[j].handler(c, entry) == App_Status_Code::OK);
         }
     }
 
     c->error("Unsupported handler type: %s  (line %d)\n",
                 entry->type,
                 entry->line_in_manifest);
+    return App_Status_Code::Error;
 }
 
 // Main entry point for the subcommand "update"
@@ -108,16 +110,21 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         return App_Status_Code::Error;
     }
 
-    // TODO: Spread out multithread?
-    // Att! Undefined behaviour of multiple entries manipulates the same files/folders
-    // TODO: Make singlethreading an option, and automatically determine number of threads for mt from std::thread::hardware_concurrency();
-    bool all_ok = true;
+    // Fill up work-queue
+    Thread_Pool_Context<Manifest_Entry*> tpc;
     for (int i = 0; i < manifest->length; i++)
     {
-        if(!cmd_update_process_entry(c, &manifest->entries[i])) {
+        tpc.queue.push(&manifest->entries[i]);
+    }
+
+    // Launch thread pool
+    bool all_ok = true;
+    size_t num_threads = a->multithreaded ? std::thread::hardware_concurrency() : 1;
+    pool_run<Manifest_Entry*>(&tpc, num_threads, [&c, &all_ok](Manifest_Entry* entry) {
+        if(!cmd_update_process_entry(c, entry)) {
             all_ok = false;
         }
-    }
+    });
 
     return all_ok ? App_Status_Code::OK : App_Status_Code::Error;
 }
