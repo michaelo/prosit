@@ -10,9 +10,9 @@
 
 namespace fs = std::filesystem;
 
-TEST(MainTest, test_empty)
+TEST(MainTest, stresstest)
 {
-    ASSERT_EQ(basic_app_main_run("../test/integration/testfiles/empty.manifest"), App_Status_Code::OK);
+    ASSERT_EQ(basic_app_main_run("../test/integration/testfiles/stresstest.manifest"), App_Status_Code::OK);
 }
 
 int main(int argc, char **argv)

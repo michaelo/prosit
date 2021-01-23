@@ -10,31 +10,33 @@
 
 namespace fs = std::filesystem;
 
-TEST(FileTst, test_file)
+TEST(FileTest, test_file)
 {
-    char** tmppath;
+    char* tmppath;
 
     // Copy local file to specific dest name
     {
-        ASSERT_EQ(basic_app_main_run_no_teardown("../test/integration/testfiles/file.manifest", tmppath), App_Status_Code::OK);
+        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/file.manifest", &tmppath);
         defer({
-            teardown(*tmppath);
-            delete(*tmppath);
+            teardown(tmppath);
+            delete(tmppath);
         });
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "dummy.txt"));
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "folder/dummy.txt"));
+        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
+        ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
     }
     
     
     // Copy local file to folder (keeps original filename)
     {
-        ASSERT_EQ(basic_app_main_run_no_teardown("../test/integration/testfiles/file_no_dest_name.manifest", tmppath), App_Status_Code::OK);
+        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/file_no_dest_name.manifest", &tmppath);
         defer({
-            teardown(*tmppath);
-            delete(*tmppath);
+            teardown(tmppath);
+            delete(tmppath);
         });
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "dummy.txt"));
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "folder/dummy.txt"));
+        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
+        ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
     }
 
     // Fails if src does not exist

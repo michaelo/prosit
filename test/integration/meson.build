@@ -23,3 +23,14 @@ foreach test_file: tests_files
             native: true),
         suite: 'integration')
 endforeach
+
+# Heavy tests - must be run deliberately
+test(test_file,
+    executable('test_prosit_stresstest',
+        ['stresstest.cpp', common_files],
+        link_with: src_lib,
+        include_directories: include_directories('../../src', '../'),
+        dependencies: testlib,
+        native: true),
+    suite: 'heavy',
+    timeout: 500)

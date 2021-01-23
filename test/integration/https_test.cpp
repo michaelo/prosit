@@ -12,19 +12,20 @@ namespace fs = std::filesystem;
 
 TEST(HttpsTest, test_https)
 {
-    char** tmppath;
+    char* tmppath;
 
     // Get file from plain http
     // TODO
 
     // Get unprotected file from https
     {
-        ASSERT_EQ(basic_app_main_run_no_teardown("../test/integration/testfiles/https.manifest", tmppath), App_Status_Code::OK);
+        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/https.manifest", &tmppath);
         defer({
-            teardown(*tmppath);
-            delete(*tmppath);
+            teardown(tmppath);
+            delete(tmppath);
         });
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "file.txt"));
+        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
     }
 
     // Get basic auth protected http file
@@ -32,12 +33,13 @@ TEST(HttpsTest, test_https)
 
     // Get basic auth protected https file
     {
-        ASSERT_EQ(basic_app_main_run_no_teardown("../test/integration/testfiles/https_basic_auth.manifest", tmppath), App_Status_Code::OK);
+        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/https_basic_auth.manifest", &tmppath);
         defer({
-            teardown(*tmppath);
-            delete(*tmppath);
+            teardown(tmppath);
+            delete(tmppath);
         });
-        ASSERT_TRUE(file_exists_in_path(*tmppath, "file.txt"));
+        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
     }
 
     // Fails if no auth-details provided for auth protected file
