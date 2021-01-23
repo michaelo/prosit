@@ -21,4 +21,8 @@ configure_file(input : 'prosit_config.h.in',
                configuration : conf_data)
 configuration_inc = include_directories('.')
 
-src_lib = static_library('app', src_lib_files, dependencies: deps, include_directories : configuration_inc)
+src_lib = static_library('app',
+                src_lib_files,
+                dependencies: deps,
+                include_directories : configuration_inc,
+                override_options : [meson.get_compiler('cpp').get_id() == 'msvc' ? 'cpp_std=vc++latest' : 'cpp_std=c++17'])
