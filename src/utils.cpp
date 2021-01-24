@@ -6,7 +6,7 @@
 
 namespace fs = std::filesystem;
 
-bool path_is_relative_inside_workspace(const char* workspace_path, const char *path_to_check)
+bool path_is_relative_inside_workspace(const char *workspace_path, const char *path_to_check)
 {
     assert(strlen(path_to_check) > 1);
     // Returns false if:
@@ -29,7 +29,7 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
     snprintf(joint_path, sizeof(joint_path), "%s/%s", workspace_path, path_to_check);
     fs::path abs = fs::weakly_canonical(joint_path);
     auto abs_path_str = abs.u8string();
-    const char *abs_path = (const char*)abs_path_str.c_str();
+    const char *abs_path = (const char *)abs_path_str.c_str();
     if (strstr(abs_path, workspace_path) != abs_path)
     {
         return false; // abs_path doesn't start with manifest_path_abs
@@ -42,7 +42,7 @@ bool path_is_relative_inside_workspace(const char* workspace_path, const char *p
 void expand_environment_vars(char *str, const size_t str_len)
 {
     // Searches for symbols of format $(var_name) and replaces it with the corresponding env-value if found.
-    // Strategy: currently using separate buffer to write the expanded string, before copying it to source. 
+    // Strategy: currently using separate buffer to write the expanded string, before copying it to source.
     // TBD: May continously manipulate same str for performance and avoidance of separate buffer on stack
     static const int SCRAP_LEN = 2048;
     assert(str_len < SCRAP_LEN);
@@ -82,7 +82,9 @@ void expand_environment_vars(char *str, const size_t str_len)
                         n += env_len;
                         assert(n < str_len); // Cheap overflow assurance.
                         i = j;
-                    } else {
+                    }
+                    else
+                    {
                         // TODO: Use proper print-function
                         printf("WARNING: Found env-like symbol, but no such env found: %s\n", symbuf);
                     }
@@ -106,15 +108,16 @@ void expand_environment_vars(char *str, const size_t str_len)
 
 // Extracts (if found) username and password from a URI. Returns true if both are found.
 // Limitations: protocol must be <= 16 chars, username and password <= 128 chars each.
-bool extract_login_from_uri(const char* uri, char* username_out, size_t username_len, char* password_out, size_t password_len)
+bool extract_login_from_uri(const char *uri, char *username_out, size_t username_len, char *password_out, size_t password_len)
 {
     // TODO: need to be more robust
-    char protocol[16+1];
-    char username_buf[128+1] = {0};
-    char password_buf[128+1] = {0};
+    char protocol[16 + 1];
+    char username_buf[128 + 1] = {0};
+    char password_buf[128 + 1] = {0};
     int matches = sscanf(uri, "%16[^:]://%128[^:]:%128[^@]@", protocol, username_buf, password_buf);
 
-    if(matches != 3) {
+    if (matches != 3)
+    {
         return false;
     }
 
@@ -124,6 +127,34 @@ bool extract_login_from_uri(const char* uri, char* username_out, size_t username
         strncpy(password_out, password_buf, std::min(sizeof(password_buf), password_len));
 
     return true;
+}
+
+void mask_login_from_uri(char *uri, size_t uri_size)
+{
+    int sym_after_double_dash = 0;
+    int sym_at = 0;
+    int sym_host_end = 0;
+    for(int i=1; i<(int)uri_size; i++) {
+        if(uri[i] == '/' && uri[i-1] == '/') {
+            sym_after_double_dash = i+1;
+            continue;
+        }
+
+        if(sym_after_double_dash && uri[i] == '/') {
+            sym_host_end = i;
+            break;
+        }
+
+        if(sym_after_double_dash && !sym_host_end && uri[i] == '@') {
+            sym_at = i;
+            continue;
+        }
+    }
+
+    // Replace the assumed auth-chunk with "*:*"
+    if(sym_after_double_dash && sym_at) {
+        snprintf(&uri[sym_after_double_dash], uri_size-sym_after_double_dash, "*:*%s", &uri[sym_at]);
+    }
 }
 
 // trims a null-terminated str in-place for blanks on both ends
@@ -136,8 +167,9 @@ size_t string_trim(char *str)
     // find first non-space char, then memmove everything back n chars
     for (size_t i = 0; i < len; i++)
     {
-        if(!isspace(str[i])) {
-            memmove(str, str+i, len-i+1); // incl null-terminator
+        if (!isspace(str[i]))
+        {
+            memmove(str, str + i, len - i + 1); // incl null-terminator
             len -= i;
             break;
         }
@@ -145,12 +177,12 @@ size_t string_trim(char *str)
 
     // r-trim:
     // find last non-space character, then set +1 = \0
-    for (size_t i = len-1; i >= 0; i--)
+    for (size_t i = len - 1; i >= 0; i--)
     {
         if (!isspace(str[i]))
         {
-            str[i+1] = '\0';
-            len = i+1;
+            str[i + 1] = '\0';
+            len = i + 1;
             break;
         }
     }

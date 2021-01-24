@@ -90,4 +90,5 @@ App_Status_Code handle_https(Context*, Manifest_Entry*);
 bool path_is_relative_inside_workspace(const char* workspace_path, const char *path_to_check);
 void expand_environment_vars(char* str, size_t str_len);
 bool extract_login_from_uri(const char* uri, char* username_out, size_t username_len, char* password_out, size_t password_len);
+void mask_login_from_uri(char* uri, size_t uri_size);
 size_t string_trim(char *str);

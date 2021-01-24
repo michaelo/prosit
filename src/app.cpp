@@ -64,15 +64,20 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
 }
 
 bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
-    // TODO: src may contain username/password, this must be masked
+    // src may contain username/password, this must be somehow masked
+    // Current strategy is to try to mask out the appropriate chunk of the URI (assumed)
+    // Alternative is to maintain the not-env-variable-expanded manifest-strings, but this
+    // also removes the usefulness of verifying that any other env-variables are correct.
+    char tmp_src_masked[128];
+    strncpy((char*)tmp_src_masked, entry->src, sizeof(tmp_src_masked));
+    mask_login_from_uri(tmp_src_masked, sizeof(tmp_src_masked));
     c->info("Processing: '%s' '%s' -> '%s' (line %d)\n",
             entry->type,
-            entry->src,
+            tmp_src_masked,
             entry->dst,
             entry->line_in_manifest);
 
     // Handler-handling: Check if handler exists, if so: execute the appropriate function
-    bool handler_found = false;
     for (size_t j = 0; j < sizeof(handlers) / sizeof(handlers[0]); j++)
     {
         if (strcmp(entry->type, handlers[j].type) == 0)
@@ -84,6 +89,7 @@ bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
     c->error("Unsupported handler type: %s  (line %d)\n",
                 entry->type,
                 entry->line_in_manifest);
+    return App_Status_Code::Error;
 }
 
 // Main entry point for the subcommand "update"
