@@ -82,14 +82,14 @@ bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
     {
         if (strcmp(entry->type, handlers[j].type) == 0)
         {
-            return (handlers[j].handler(c, entry) != App_Status_Code::OK);
+            return (handlers[j].handler(c, entry) == App_Status_Code::OK);
         }
     }
 
     c->error("Unsupported handler type: %s  (line %d)\n",
                 entry->type,
                 entry->line_in_manifest);
-    return App_Status_Code::Error;
+    return false;
 }
 
 // Main entry point for the subcommand "update"
