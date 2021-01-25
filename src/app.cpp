@@ -187,12 +187,19 @@ App_Status_Code app_main(int argc, char **argv)
     context_init(&c);
 
     CliArguments *args;
-    bool argparse_result = cli_argparse(argc, argv, &args);
-    defer(if (argparse_result) delete (args));
+    Argparse_Status argparse_result = cli_argparse(argc, argv, &args);
+    defer(if (argparse_result == Argparse_Status::Ok) delete (args));
 
-    if (!argparse_result)
-    {
-        return App_Status_Code::Error;
+    switch(argparse_result) {
+        case Argparse_Status::Error:
+            return App_Status_Code::Error;
+        break;
+        case Argparse_Status::OkButQuit:
+            return App_Status_Code::Ok;
+        break;
+        default:
+        // Do nothing
+        break;
     }
 
     if (strlen(args->manifest_path) == 0)

@@ -7,7 +7,7 @@ TEST(ArgparseTest, Parse)
         CliArguments *result;
         char *argv[] = {(char *)"prosit"};
 
-        ASSERT_FALSE(cli_argparse(1, argv, &result));
+        ASSERT_EQ(cli_argparse(1, argv, &result), Argparse_Status::Error);
     }
 
     {
@@ -16,7 +16,7 @@ TEST(ArgparseTest, Parse)
             (char *)"prosit",
             (char *)"update"};
 
-        ASSERT_TRUE(cli_argparse(2, argv, &result));
+        ASSERT_EQ(cli_argparse(2, argv, &result), Argparse_Status::Ok);
         ASSERT_EQ(result->command, Subcommand::Update);
 
         ASSERT_FALSE(result->verbose);
@@ -31,7 +31,7 @@ TEST(ArgparseTest, Parse)
             (char *)"prosit",
             (char *)"--help"};
 
-        ASSERT_FALSE(cli_argparse(2, argv, &result));
+        ASSERT_EQ(cli_argparse(2, argv, &result), Argparse_Status::OkButQuit);
     }
 
     {
@@ -41,7 +41,7 @@ TEST(ArgparseTest, Parse)
             (char *)"update",
             (char *)"--verbose"};
 
-        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_EQ(cli_argparse(3, argv, &result), Argparse_Status::Ok);
         ASSERT_TRUE(result->verbose);
     }
 
@@ -52,7 +52,7 @@ TEST(ArgparseTest, Parse)
             (char *)"update",
             (char *)"--silent"};
 
-        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_EQ(cli_argparse(3, argv, &result), Argparse_Status::Ok);
         ASSERT_TRUE(result->silent);
     }
 
@@ -63,7 +63,7 @@ TEST(ArgparseTest, Parse)
             (char *)"update",
             (char *)"--outoftree"};
 
-        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_EQ(cli_argparse(3, argv, &result), Argparse_Status::Ok);
         ASSERT_TRUE(result->outoftree);
     }
 
@@ -74,7 +74,7 @@ TEST(ArgparseTest, Parse)
             (char *)"update",
             (char *)"--force"};
 
-        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_EQ(cli_argparse(3, argv, &result), Argparse_Status::Ok);
         ASSERT_TRUE(result->force);
     }
 
@@ -85,7 +85,7 @@ TEST(ArgparseTest, Parse)
             (char *)"update",
             (char *)"--manifest=custom.project"};
 
-        ASSERT_TRUE(cli_argparse(3, argv, &result));
+        ASSERT_EQ(cli_argparse(3, argv, &result), Argparse_Status::Ok);
         ASSERT_STREQ(result->manifest_path, "custom.project");
     }
 }

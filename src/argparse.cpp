@@ -44,7 +44,7 @@ Global args:
 }
 
 // arguments_out must be freed if function returns true
-bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
+Argparse_Status cli_argparse(int argc, char **argv, CliArguments **arguments_out)
 {
     CliArguments *arguments = new CliArguments;
     defer(delete (arguments));
@@ -55,7 +55,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
     if (argc < 2)
     {
         printf("ERROR: Not enough parameters. Try %s --help.\n", argv[0]);
-        return false;
+        return Argparse_Status::Error;
     }
 
     // Check for non-subcommand flags (help, version)
@@ -65,14 +65,14 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
         {
             cli_print_help();
-            return false;
+            return Argparse_Status::OkButQuit;
         }
 
         // Check for --version
         if (strcmp(argv[i], "--version") == 0)
         {
             printf("prosit v%s\n", app_version());
-            return false;
+            return Argparse_Status::OkButQuit;
         }
     }
 
@@ -80,7 +80,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
     if (!deserialize(argv[1], &arguments->command))
     {
         printf("ERROR: Invalid subcommand: %s\n", argv[1]);
-        return false;
+        return Argparse_Status::Error;
     }
 
     // Check for common flags (-f, -v, -s)
@@ -120,7 +120,7 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
             else
             {
                 printf("ERROR: Could not parse value of --manifest");
-                return false;
+                return Argparse_Status::Error;
             }
             continue;
         }
@@ -128,5 +128,5 @@ bool cli_argparse(int argc, char **argv, CliArguments **arguments_out)
 
     *arguments_out = new CliArguments;
     memcpy(*arguments_out, arguments, sizeof(CliArguments));
-    return true;
+    return Argparse_Status::Ok;
 }

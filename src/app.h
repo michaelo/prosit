@@ -75,7 +75,13 @@ struct CliArguments {
     char manifest_path[MAX_PATH_LEN]; // <-- buffer or ref? For lifetime's sake; buffer.
 };
 
-bool cli_argparse(int argc, char** argv, CliArguments** arguments_out);
+enum class Argparse_Status {
+    Ok,
+    OkButQuit, // e.g. for --help or --version
+    Error
+};
+
+Argparse_Status cli_argparse(int argc, char** argv, CliArguments** arguments_out);
 
 //////////////////////
 // Handlers
