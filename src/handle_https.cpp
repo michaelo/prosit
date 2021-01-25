@@ -111,5 +111,5 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
         }
     }
 
-    return App_Status_Code::OK;
+    return App_Status_Code::Ok;
 }

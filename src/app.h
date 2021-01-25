@@ -11,8 +11,8 @@ static const int MAX_TYPE_LEN = 16;
 //////////////////////
 // Entry point API
 //////////////////////
-enum App_Status_Code {
-    OK = 0,
+enum class App_Status_Code {
+    Ok = 0,
     Error,
 };
 
@@ -58,7 +58,7 @@ void manifest_free(Manifest* m);
 //////////////////////
 // Argparse
 //////////////////////
-enum Subcommand {
+enum class Subcommand {
     Unspecified,
     Update
 };

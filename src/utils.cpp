@@ -177,7 +177,7 @@ size_t string_trim(char *str)
 
     // r-trim:
     // find last non-space character, then set +1 = \0
-    for (size_t i = len - 1; i >= 0; i--)
+    for (size_t i = len - 1; i < len; i--)
     {
         if (!isspace(str[i]))
         {

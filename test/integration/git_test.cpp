@@ -21,7 +21,7 @@ TEST(FileTst, test_file)
             teardown(tmppath);
             delete(tmppath);
         });
-        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_EQ(result, App_Status_Code::Ok);
         
         ASSERT_TRUE(file_exists_in_path(tmppath, "cloned/to/prosit/.git"));
         ASSERT_TRUE(file_exists_in_path(tmppath, "cloned/to/prosit/README.md"));

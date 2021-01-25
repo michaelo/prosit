@@ -24,7 +24,7 @@ TEST(HttpsTest, test_https)
             teardown(tmppath);
             delete(tmppath);
         });
-        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_EQ(result, App_Status_Code::Ok);
         ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
     }
 
@@ -38,15 +38,15 @@ TEST(HttpsTest, test_https)
             teardown(tmppath);
             delete(tmppath);
         });
-        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_EQ(result, App_Status_Code::Ok);
         ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
     }
 
     // Fails if no auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_missing_login.manifest"), App_Status_Code::OK);
+    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_missing_login.manifest"), App_Status_Code::Ok);
 
     // Fails if incorrect auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_incorrect_login.manifest"), App_Status_Code::OK);
+    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_incorrect_login.manifest"), App_Status_Code::Ok);
 }
 
 int main(int argc, char **argv)

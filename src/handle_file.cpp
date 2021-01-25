@@ -18,7 +18,6 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
     std::error_code error_code; // To at least suppress exceptions
     fs::path src_canonical = fs::weakly_canonical(e->src, error_code);
     size_t dst_len = strlen(e->dst);
-    // std::error_code error_code; // TODO: get rid of std-exceptions.
 
     if(e->dst[strlen(e->dst)-1] == '/') {
         assert(sizeof(e->dst) > dst_len+src_canonical.filename().u8string().length());
@@ -45,5 +44,5 @@ App_Status_Code handle_file(Context *c, Manifest_Entry *e)
 
     c->debug("Copy of %s to %s OK\n", e->src, e->dst);
 
-    return App_Status_Code::OK;
+    return App_Status_Code::Ok;
 }

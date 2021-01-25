@@ -30,12 +30,9 @@ struct Handler_Definition
 };
 
 static Handler_Definition handlers[] = {
-    {.type = "https",
-     .handler = handle_https},
-    {.type = "git",
-     .handler = handle_git},
-    {.type = "file",
-     .handler = handle_file}};
+    {"https", handle_https},
+    {"git", handle_git},
+    {"file", handle_file}};
 
 // Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
 bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
@@ -82,7 +79,7 @@ bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
     {
         if (strcmp(entry->type, handlers[j].type) == 0)
         {
-            return (handlers[j].handler(c, entry) == App_Status_Code::OK);
+            return (handlers[j].handler(c, entry) == App_Status_Code::Ok);
         }
     }
 
@@ -125,7 +122,7 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         }
     }
 
-    return all_ok ? App_Status_Code::OK : App_Status_Code::Error;
+    return all_ok ? App_Status_Code::Ok : App_Status_Code::Error;
 }
 
 static void print_debug(const char *format, ...)
@@ -218,7 +215,7 @@ App_Status_Code app_main(int argc, char **argv)
     // Check command and start processing
     switch (args->command)
     {
-    case Update:
+    case Subcommand::Update:
         return cmd_update(&c, args);
         break;
     default:
@@ -228,7 +225,7 @@ App_Status_Code app_main(int argc, char **argv)
         break;
     }
 
-    return App_Status_Code::OK;
+    return App_Status_Code::Ok;
 }
 
 const char *app_version()

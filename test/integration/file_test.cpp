@@ -21,7 +21,7 @@ TEST(FileTest, test_file)
             teardown(tmppath);
             delete(tmppath);
         });
-        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_EQ(result, App_Status_Code::Ok);
         ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
         ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
     }
@@ -34,13 +34,13 @@ TEST(FileTest, test_file)
             teardown(tmppath);
             delete(tmppath);
         });
-        ASSERT_EQ(result, App_Status_Code::OK);
+        ASSERT_EQ(result, App_Status_Code::Ok);
         ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
         ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
     }
 
     // Fails if src does not exist
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/file_src_not_exist.manifest"), App_Status_Code::OK);
+    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/file_src_not_exist.manifest"), App_Status_Code::Ok);
 }
 
 int main(int argc, char **argv)
