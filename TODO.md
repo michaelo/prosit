@@ -36,3 +36,10 @@
 
 ## General / techdebt
 * Clean up use of std. Make more consistent how and when it's used. Right now there are a lot of mix between char*, std::string and std::filesyste::path.
+* Output-handling when --multithreaded (for system() in particular): Redirect to temporary files , then batch up and dump data once entry finished. Must lock output.
+
+## Packaging
+
+We want to provide self-contained executables that can easily drop in a predefined set of supported systems/platforms.
+
+To achieve this we must statically link any dependencies. This includes the C++ stdlib.

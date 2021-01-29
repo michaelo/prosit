@@ -50,6 +50,7 @@ Supported for v1.0:
 * git
 * file
 * https/http (with basic auth)
+* orthogonal to file and https: extraction of archive
 
 Future:
 * dir
@@ -61,13 +62,25 @@ Future:
 
 It builds using the [Meson Build system](https://mesonbuild.com/).
 
+macOS:
+
     meson build
     cd build
     ninja
     ./prosit --help
 
+Windows:
+    
+    (In Visual Studio Command Prompt)
+
+    meson build --backend=vs
+    cd build
+    msbuild prosit.sln
+    prosit --help
+
 ### Prerequisites
 
+* C++17
 * libcurl must be installed and available
 
 
@@ -80,11 +93,14 @@ It builds using the [Meson Build system](https://mesonbuild.com/).
 * Zero runtime dependencies
 * Minimal compile-time dependencies
 
+
 ## Target platforms
 
 * x64 macOS (developed on)
 * x64 Windows
 * x64 Linux
+* ARM64 Linux
+* ARM64 macOS
 
 
 ## FAQ
