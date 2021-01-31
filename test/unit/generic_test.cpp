@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 TEST(GenericTest, path_is_relative_inside_workspace)
 {
     Context c;
-    fs::path manifest_path("/my/repo/project.manifest");
+    fs::path manifest_path("/my/repo/prosit.manifest");
     
     strncpy(c.workspace_path_abs, (const char*)fs::absolute(manifest_path.parent_path()).c_str(), sizeof(c.workspace_path_abs));
     ASSERT_TRUE(path_is_relative_inside_workspace(c.workspace_path_abs, "./ok"));

@@ -5,7 +5,7 @@ ATT! The WIP is strong with this one, but it's running now. Tested building for 
 The gist:
 
     prosit update # Update all dependencies as specifed in the manifest
-    # prosit init # Set up a new best-effort project.manifest in the current working directory <- not yet implemented
+    # prosit init # Set up a new best-effort prosit.manifest in the current working directory <- not yet implemented
     prosit --help
 
 
@@ -17,24 +17,28 @@ This is a minimalistic tool to help maintain your dependencies, with a high degr
 
 A file in the current working directory (most likely the root-folder of your project). 
 
-Name: project.manifest
+Name: prosit.manifest
 
 Contents-syntax (Att! subject to changes):
 
     # Comments are supported. Here we pull a repo and checkout e.g. a tag
     git: https://github.com/some/repo#v1.0 > my/local/path
+
     # You can also specify branch or exact revision
     git: https://github.com/other/repo#main > otherrepo
+
     # Some files from somewhere else could be relevant
     file: /etc/hosts > local/hosts.txt
+
     # File from web
     https: http://michaelodden.com/robots.txt > robots.txt
+
     # File from web w/ basic auth and env-variables
     https: https://$(USERNAME):$(PASSWORD)@my.com/protected_file > protected_file
 
 Assuming all sources are available, and any rights etc are OK, this shall result in a directory structure like this:
 
-    ./project.manifest <- the file as described above
+    ./prosit.manifest <- the file as described above
     ./my/local/path/
         .git/
         <checked out repo contents>
@@ -50,26 +54,26 @@ Supported for v1.0:
 * git
 * file
 * https/http (with basic auth)
-* orthogonal to file and https: extraction of archive
 
 Future:
 * dir
 * hg
 * https (with other auths)
+* orthogonal to file and https: extraction of archive
 
 
 ## Build and install
 
 It builds using the [Meson Build system](https://mesonbuild.com/).
 
-macOS:
+Linux/macOS (using Ninja):
 
     meson build
     cd build
     ninja
     ./prosit --help
 
-Windows:
+Windows (using MSBuild):
     
     (In Visual Studio Command Prompt)
 
@@ -80,8 +84,8 @@ Windows:
 
 ### Prerequisites
 
-* C++17
-* libcurl must be installed and available
+* C++17 for clang/gcc. It uses "c++latest" for Visual C++ tested at 2020-01 (TODO: add tested version here).
+* libcurl must be installed and available on system (tested with pkg-config and vcpkg)
 
 
 ## Design goals
