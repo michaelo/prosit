@@ -16,7 +16,7 @@ TEST(FileTest, test_file)
 
     // Copy local file to specific dest name
     {
-        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/file.manifest", &tmppath);
+        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/file.manifest", &tmppath);
         defer({
             teardown(tmppath);
             delete(tmppath);
@@ -29,7 +29,7 @@ TEST(FileTest, test_file)
     
     // Copy local file to folder (keeps original filename)
     {
-        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/file_no_dest_name.manifest", &tmppath);
+        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/file_no_dest_name.manifest", &tmppath);
         defer({
             teardown(tmppath);
             delete(tmppath);
@@ -40,7 +40,7 @@ TEST(FileTest, test_file)
     }
 
     // Fails if src does not exist
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/file_src_not_exist.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(basic_app_main_run("test/integration/testfiles/file_src_not_exist.manifest"), App_Status_Code::Ok);
 }
 
 int main(int argc, char **argv)

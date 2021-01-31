@@ -19,7 +19,7 @@ TEST(HttpsTest, test_https)
 
     // Get unprotected file from https
     {
-        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/https.manifest", &tmppath);
+        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/https.manifest", &tmppath);
         defer({
             teardown(tmppath);
             delete(tmppath);
@@ -33,7 +33,7 @@ TEST(HttpsTest, test_https)
 
     // Get basic auth protected https file
     {
-        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/https_basic_auth.manifest", &tmppath);
+        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/https_basic_auth.manifest", &tmppath);
         defer({
             teardown(tmppath);
             delete(tmppath);
@@ -43,10 +43,10 @@ TEST(HttpsTest, test_https)
     }
 
     // Fails if no auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_missing_login.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(basic_app_main_run("test/integration/testfiles/https_basic_auth_missing_login.manifest"), App_Status_Code::Ok);
 
     // Fails if incorrect auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("../test/integration/testfiles/https_basic_auth_incorrect_login.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(basic_app_main_run("test/integration/testfiles/https_basic_auth_incorrect_login.manifest"), App_Status_Code::Ok);
 }
 
 int main(int argc, char **argv)

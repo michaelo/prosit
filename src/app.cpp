@@ -30,9 +30,9 @@ struct Handler_Definition
 };
 
 static Handler_Definition handlers[] = {
-    {"https", handle_https},
-    {"git", handle_git},
-    {"file", handle_file}};
+        {"https", handle_https},
+        {"git", handle_git},
+        {"file", handle_file}};
 
 // Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
 bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
@@ -60,13 +60,14 @@ bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)
     return !any_errors;
 }
 
-bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
+bool cmd_update_process_entry(Context *c, Manifest_Entry *entry)
+{
     // src may contain username/password, this must be somehow masked
     // Current strategy is to try to mask out the appropriate chunk of the URI (assumed)
     // Alternative is to maintain the not-env-variable-expanded manifest-strings, but this
     // also removes the usefulness of verifying that any other env-variables are correct.
     char tmp_src_masked[128];
-    strncpy((char*)tmp_src_masked, entry->src, sizeof(tmp_src_masked));
+    strncpy((char *)tmp_src_masked, entry->src, sizeof(tmp_src_masked));
     mask_login_from_uri(tmp_src_masked, sizeof(tmp_src_masked));
     c->info("Processing: '%s' '%s' -> '%s' (line %d)\n",
             entry->type,
@@ -84,8 +85,8 @@ bool cmd_update_process_entry(Context* c, Manifest_Entry* entry) {
     }
 
     c->error("Unsupported handler type: %s  (line %d)\n",
-                entry->type,
-                entry->line_in_manifest);
+             entry->type,
+             entry->line_in_manifest);
     return false;
 }
 
@@ -111,13 +112,12 @@ App_Status_Code cmd_update(Context *c, CliArguments *a)
         return App_Status_Code::Error;
     }
 
-    // TODO: Spread out multithread?
     // Att! Undefined behaviour of multiple entries manipulates the same files/folders
-    // TODO: Make singlethreading an option, and automatically determine number of threads for mt from std::thread::hardware_concurrency();
     bool all_ok = true;
     for (int i = 0; i < manifest->length; i++)
     {
-        if(!cmd_update_process_entry(c, &manifest->entries[i])) {
+        if (!cmd_update_process_entry(c, &manifest->entries[i]))
+        {
             all_ok = false;
         }
     }
@@ -187,14 +187,15 @@ App_Status_Code app_main(int argc, char **argv)
     Argparse_Status argparse_result = cli_argparse(argc, argv, &args);
     defer(if (argparse_result == Argparse_Status::Ok) delete (args));
 
-    switch(argparse_result) {
-        case Argparse_Status::Error:
-            return App_Status_Code::Error;
+    switch (argparse_result)
+    {
+    case Argparse_Status::Error:
+        return App_Status_Code::Error;
         break;
-        case Argparse_Status::OkButQuit:
-            return App_Status_Code::Ok;
+    case Argparse_Status::OkButQuit:
+        return App_Status_Code::Ok;
         break;
-        default:
+    default:
         // Do nothing
         break;
     }

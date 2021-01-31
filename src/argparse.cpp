@@ -104,7 +104,6 @@ Argparse_Status cli_argparse(int argc, char **argv, CliArguments **arguments_out
             continue;
         }
 
-        // TODO: Consider moving to only applicable subcommands if relevant in the future
         if (strcmp(argv[i], "-x") == 0 || strcmp(argv[i], "--outoftree") == 0)
         {
             arguments->outoftree = true;

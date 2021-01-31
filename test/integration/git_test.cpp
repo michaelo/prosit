@@ -16,7 +16,7 @@ TEST(FileTst, test_file)
 
     // Verify clone of remote git repo
     {
-        App_Status_Code result = basic_app_main_run_no_teardown("../test/integration/testfiles/git_remote.manifest", &tmppath);
+        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/git_remote.manifest", &tmppath);
         defer({
             teardown(tmppath);
             delete(tmppath);

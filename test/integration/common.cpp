@@ -8,11 +8,10 @@
 #include "mlib/defer.imp.h"
 #include "platform.h"
 
+static constexpr int MAX_BASEFOLDER_CHECK_STEPS = 10;
+static constexpr char BASEFOLDER_CHECKFILE[] = "meson.build";
+
 namespace fs = std::filesystem;
-
-// TODO: Replace tmpnam() with appropriate non-obsolete substitutes
-
-
 
 bool file_exists_in_path(const char *tmppath, const char* relpath)
 {
@@ -32,7 +31,7 @@ void setup(char *tmppath, size_t tmppath_size)
     // Assign semi-unique subfolder name to allow parallell runs. Att! Not particularily robust.
     bool dir_created = false;
     for(int i=0; i<100; i++) {
-        snprintf(tmppath, tmppath_size, "%s%s_%d", tmp_dir.c_str(), "prosit_inttest", i);
+        snprintf(tmppath, tmppath_size, "%s/%s_%d", tmp_dir.c_str(), "prosit_inttest", i);
         printf("Attempting to create tmp-folder: %s\n", tmppath);
         if(fs::create_directories(tmppath, error_code)) {
             printf("Succeeded in creating: %s\n", tmppath);
@@ -49,29 +48,54 @@ void teardown(char *tmppath)
     assert(fs::remove_all(tmppath) > 0);
 }
 
+static bool get_first_parent_containing(const char *start_path, char *out_buf, size_t out_buf_size, const char *file_to_check_for)
+{
+    // Iterate parent-by-parent to get the folder with some predefined content
+    fs::path current(start_path);
+
+    int i = 0;
+    while(fs::exists(current) && i++ < MAX_BASEFOLDER_CHECK_STEPS) {
+        if(file_exists_in_path(current.c_str(), file_to_check_for)) {
+            strncpy(out_buf, current.c_str(), out_buf_size);
+            return true;
+        }
+        current = current.parent_path();
+    }
+    return false;
+}
+
 // out_tmppath must be cleaned, and then *out_tmppath deleted
 App_Status_Code basic_app_main_run_no_teardown(const char *manifest, char** out_tmppath)
 {
-    char* tmppath = new char[MAX_PATH_LEN];
-    fs::path initial_path = fs::current_path();
-    fs::path manifest_path = fs::canonical(manifest);
-    fs::path testfiles_path = fs::canonical("../test/integration/testfiles");
+
+    char base_path[256];
+    assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
+
+    char tmppath_raw[256+128];
+    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles");
+    fs::path testfiles_path = fs::canonical(tmppath_raw);
     setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);
 
-    // TODO: Check resulting contents instead of just the return code.
 
-    char *argv[] = {
-        (char *)"prosit",
-        (char *)"update",
-        (char *)NULL,
-        (char *)"--verbose"};
+    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest);
+    fs::path manifest_path = fs::canonical(tmppath_raw);
 
+
+
+    char* tmppath = new char[MAX_PATH_LEN];
+    fs::path initial_path = fs::current_path();
     setup(tmppath, MAX_PATH_LEN);
     defer(fs::current_path(initial_path));
 
     char manifest_arg[1024];
     snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.u8string().c_str());
     fs::current_path(tmppath);
+
+    char *argv[] = {
+        (char *)"prosit",
+        (char *)"update",
+        (char *)NULL,
+        (char *)"--verbose"};
     argv[2] = manifest_arg;
 
     *out_tmppath = tmppath;
@@ -82,19 +106,21 @@ App_Status_Code basic_app_main_run_no_teardown(const char *manifest, char** out_
 
 App_Status_Code basic_app_main_run(const char *manifest)
 {
-    char tmppath[MAX_PATH_LEN];
-    fs::path initial_path = fs::current_path();
-    fs::path manifest_path = fs::canonical(manifest);
-    fs::path testfiles_path = fs::canonical("../test/integration/testfiles");
+
+    char base_path[256];
+    assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
+
+    char tmppath_raw[256+128];
+    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles");
+    fs::path testfiles_path = fs::canonical(tmppath_raw);
     setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);
 
-    // TODO: Check resulting contents instead of just the return code.
+    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest);
+    fs::path manifest_path = fs::canonical(tmppath_raw);
 
-    char *argv[] = {
-        (char *)"prosit",
-        (char *)"update",
-        (char *)NULL};
 
+    char tmppath[MAX_PATH_LEN];
+    fs::path initial_path = fs::current_path();
     setup(tmppath, MAX_PATH_LEN);
     defer(teardown(tmppath));
     defer(fs::current_path(initial_path));
@@ -102,6 +128,11 @@ App_Status_Code basic_app_main_run(const char *manifest)
     char manifest_arg[1024];
     snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.u8string().c_str());
     fs::current_path(tmppath);
+
+    char *argv[] = {
+        (char *)"prosit",
+        (char *)"update",
+        (char *)NULL};
     argv[2] = manifest_arg;
 
     return app_main(3, argv);

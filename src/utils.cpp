@@ -110,7 +110,6 @@ void expand_environment_vars(char *str, const size_t str_len)
 // Limitations: protocol must be <= 16 chars, username and password <= 128 chars each.
 bool extract_login_from_uri(const char *uri, char *username_out, size_t username_len, char *password_out, size_t password_len)
 {
-    // TODO: need to be more robust
     char protocol[16 + 1];
     char username_buf[128 + 1] = {0};
     char password_buf[128 + 1] = {0};

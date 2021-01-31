@@ -1,2 +1,2 @@
 cd build
-watchexec -c --watch=.. --ignore=test/integration/*  "meson test --suite prosit:unit"
+watchexec -c --watch=..  "meson test --suite prosit:unit --suite prosit:integration"
