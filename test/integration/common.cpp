@@ -111,11 +111,11 @@ App_Status_Code basic_app_main_run(const char *manifest)
     assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
 
     char tmppath_raw[MAX_PATH_LEN];
-    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles");
+    assert(snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles") > 0);
     fs::path testfiles_path = fs::canonical(tmppath_raw);
     setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);
 
-    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest);
+    assert(snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest) > 0);
     fs::path manifest_path = fs::canonical(tmppath_raw);
 
 
