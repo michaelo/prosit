@@ -18,17 +18,24 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
     buf_pr_token(buf, "\r\n", [manifest, &any_errors, &num_entries, &line_no](char *line) {
         line_no++;
         size_t line_len = strlen(line);
+        if(line_len==0) {
+            return;
+        }
         // Ignore comment-lines
         if (line[0] == '#')
+        {
             return;
+        }
 
         // Ignore all-space lines
         {
+            int start_i=0;
             bool all_space = true;
             for (size_t i = 0; i < line_len; i++)
             {
                 if (!isspace(line[i]))
                 {
+                    start_i = i;
                     all_space = false;
                     break;
                 }
@@ -38,16 +45,22 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
             {
                 return;
             }
+
+            // Trim away leading space
+            line = &line[start_i];
         }
 
-        int num_matches = sscanf(line, "%[^:]: %[^>] > %[^\n]", (char *)&manifest->entries[num_entries].type, (char *)&manifest->entries[num_entries].src, (char *)&manifest->entries[num_entries].dst);
+        char* type_sep = strchr(line, ':');
+        char* srcdest_sep = strchr(type_sep, '>');
 
-        if (num_matches < 3)
+        if (type_sep && srcdest_sep)
         {
-            printf("ERROR manifest:%d: Could not parse line\n", line_no);
-            printf("  -> %s\n", line);
-            any_errors = true;
-            return;
+            *type_sep = '\0';
+            *srcdest_sep = '\0';
+
+            strncpy(manifest->entries[num_entries].type, line, sizeof(manifest->entries[num_entries].type));
+            strncpy(manifest->entries[num_entries].src, type_sep+1, sizeof(manifest->entries[num_entries].src));
+            strncpy(manifest->entries[num_entries].dst, srcdest_sep+1, sizeof(manifest->entries[num_entries].dst));
         }
 
         manifest->entries[num_entries].line_in_manifest = line_no;

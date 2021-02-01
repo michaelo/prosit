@@ -5,7 +5,7 @@
 static const char APP_NAME[] = "prosit";
 static const char DEFAULT_MANIFEST_NAME[] = "prosit.manifest";
 
-static const int MAX_PATH_LEN = 1024;
+static const int MAX_PATH_LEN = 2048;
 static const int MAX_TYPE_LEN = 16;
 
 //////////////////////

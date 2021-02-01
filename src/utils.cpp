@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstring>
 #include <filesystem>
+#include <algorithm>
 
 #include "app.h"
 
@@ -39,22 +40,23 @@ bool path_is_relative_inside_workspace(const char *workspace_path, const char *p
 }
 
 // Att! Modifies str. TODO: Test to make in-place to avoid having to create temporary buffer.
-void expand_environment_vars(char *str, const size_t str_len)
+void expand_environment_vars(char *str, const size_t str_size)
 {
     // Searches for symbols of format $(var_name) and replaces it with the corresponding env-value if found.
     // Strategy: currently using separate buffer to write the expanded string, before copying it to source.
     // TBD: May continously manipulate same str for performance and avoidance of separate buffer on stack
-    static const int SCRAP_LEN = 2048;
-    assert(str_len < SCRAP_LEN);
+    static const int SCRAP_LEN = MAX_PATH_LEN+1;
+    assert(str_size <= SCRAP_LEN);
     char scrap[SCRAP_LEN];
     size_t n = 0; // byte count for expanded string
+    size_t str_len = strlen(str);
 
     char *sym;
     char *env;
 
     char symbuf[128];
     bool any_expansions = false;
-    for (size_t i = 0; i < str_len - 1; i++)
+    for (size_t i = 0; i < str_len; i++)
     {
         // Locate start of potential symbol
         if (str[i] == '$' && str[i + 1] == '(')
@@ -63,11 +65,12 @@ void expand_environment_vars(char *str, const size_t str_len)
 
             // Locate end of potential symbol
             // Find first possible closing ')' within string?
-            for (size_t j = i + 1; j < str_len; j++)
+            for (size_t j = i + 1; j < str_size; j++)
             {
                 if (str[j] == ')')
                 {
                     size_t sym_len = str + j - sym;
+                    sym_len = std::min(sym_len, sizeof(symbuf)-1);
                     memcpy(symbuf, sym, sym_len);
                     symbuf[sym_len] = '\0';
 
@@ -80,7 +83,7 @@ void expand_environment_vars(char *str, const size_t str_len)
                         memcpy(scrap + n, env, env_len); // Don't want \0
 
                         n += env_len;
-                        assert(n < str_len); // Cheap overflow assurance.
+                        assert(n < str_size); // Cheap overflow assurance.
                         i = j;
                     }
                     else
@@ -107,12 +110,12 @@ void expand_environment_vars(char *str, const size_t str_len)
 }
 
 // Extracts (if found) username and password from a URI. Returns true if both are found.
-// Limitations: protocol must be <= 16 chars, username and password <= 128 chars each.
+// Limitations: protocol must be <= 16 chars, username and password <= 128 chars each. (TODO)
 bool extract_login_from_uri(const char *uri, char *username_out, size_t username_len, char *password_out, size_t password_len)
 {
-    char protocol[16 + 1];
-    char username_buf[128 + 1] = {0};
-    char password_buf[128 + 1] = {0};
+    char protocol[16];
+    char username_buf[128] = {0};
+    char password_buf[128] = {0};
     int matches = sscanf(uri, "%16[^:]://%128[^:]:%128[^@]@", protocol, username_buf, password_buf);
 
     if (matches != 3)

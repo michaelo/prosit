@@ -10,7 +10,7 @@
 
 namespace fs = std::filesystem;
 
-TEST(FileTst, test_file)
+TEST(GitTest, test_file)
 {
     char* tmppath;
 

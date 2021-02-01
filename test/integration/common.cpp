@@ -107,10 +107,10 @@ App_Status_Code basic_app_main_run_no_teardown(const char *manifest, char** out_
 App_Status_Code basic_app_main_run(const char *manifest)
 {
 
-    char base_path[256];
+    char base_path[MAX_PATH_LEN];
     assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
 
-    char tmppath_raw[256+128];
+    char tmppath_raw[MAX_PATH_LEN];
     snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles");
     fs::path testfiles_path = fs::canonical(tmppath_raw);
     setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);

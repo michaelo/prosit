@@ -63,13 +63,35 @@ TEST(ManifestTest, EntriesShallSupportEnvVariables)
         Manifest *m;
         setenv("PROSIT_FAKEUSER", "mimo", 1);
         setenv("PROSIT_FAKEPASS", "secret", 1);
-        char buf[] = R"manifest(
-            git: $(PROSIT_FAKEUSER):$(PROSIT_FAKEPASS) > local/$(PROSIT_FAKEUSER)
-        )manifest";
+        char buf[] =
+R"manifest(
+git: $(PROSIT_FAKEUSER):$(PROSIT_FAKEPASS) > local/$(PROSIT_FAKEUSER)
+)manifest";
 
         ASSERT_TRUE(manifest_parse_buf(buf, &m));
+        ASSERT_STREQ(m->entries[0].type, "git");
         ASSERT_STREQ(m->entries[0].src, "mimo:secret");
         ASSERT_STREQ(m->entries[0].dst, "local/mimo");
+
+        manifest_free(m);
+    }
+}
+
+TEST(ManifestTest, DebugEnvVariableIssueWithLongMaxText)
+{
+    printf("passed line: %d\n", __LINE__);
+    {
+        Manifest *m;
+        char buf[] = R"manifest(
+            file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > dummy.txt
+)manifest";
+
+        setenv("PROSIT_ITEST_TESTFILES", "/Users/michaelodden/dev/prosit/test/integration/testfiles", 1);
+        manifest_parse_buf(buf, &m);
+
+        ASSERT_STREQ(m->entries[0].type, "file");
+        ASSERT_STREQ(m->entries[0].src, "/Users/michaelodden/dev/prosit/test/integration/testfiles/dummy.txt");
+        ASSERT_STREQ(m->entries[0].dst, "dummy.txt");
 
         manifest_free(m);
     }
