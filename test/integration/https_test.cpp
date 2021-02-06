@@ -10,44 +10,39 @@
 
 namespace fs = std::filesystem;
 
-TEST(HttpsTest, test_https)
+TEST(HttpsTest, shall_get_unprotected_file)
 {
-    char* tmppath;
-
-    // Get file from plain http
-    // TODO
-
     // Get unprotected file from https
-    {
-        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/https.manifest", &tmppath);
-        defer({
-            teardown(tmppath);
-            delete(tmppath);
-        });
-        ASSERT_EQ(result, App_Status_Code::Ok);
-        ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
-    }
+    ASSERT_TRUE(test_succeeds_and_contains_files(R"(
+        https: https://src.michaelodden.com/prosit/unprotected/file.txt > file.txt
+        )", 1, TESTFILEARR{
+            "file.txt"
+        }));
+}
 
-    // Get basic auth protected http file
-    // TODO
-
+TEST(HttpsTest, shall_get_basic_auth_protected_file)
+{
     // Get basic auth protected https file
-    {
-        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/https_basic_auth.manifest", &tmppath);
-        defer({
-            teardown(tmppath);
-            delete(tmppath);
-        });
-        ASSERT_EQ(result, App_Status_Code::Ok);
-        ASSERT_TRUE(file_exists_in_path(tmppath, "file.txt"));
-    }
+    ASSERT_TRUE(test_succeeds_and_contains_files(R"(
+        https: https://testuser:testpass@src.michaelodden.com/prosit/basicauth/file.txt > file.txt
+        )", 1, TESTFILEARR{
+            "file.txt"
+        }));
+}
 
+TEST(HttpsTest, shall_return_error_on_auth_error)
+{
     // Fails if no auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("test/integration/testfiles/https_basic_auth_missing_login.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(test_allinone(R"(
+        https: https://src.michaelodden.com/prosit/basicauth/file.txt > file.txt
+        )"), App_Status_Code::Ok);
 
     // Fails if incorrect auth-details provided for auth protected file
-    ASSERT_NE(basic_app_main_run("test/integration/testfiles/https_basic_auth_incorrect_login.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(test_allinone(R"(
+        https: https://testuser:incorrectpass@src.michaelodden.com/prosit/basicauth/file.txt > file.txt
+        )"), App_Status_Code::Ok);
 }
+
 
 int main(int argc, char **argv)
 {

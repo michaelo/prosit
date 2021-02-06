@@ -11,6 +11,7 @@ tests_files = [
     'main_test.cpp',
     'file_test.cpp',
     'git_test.cpp',
+    'hg_test.cpp',
     'https_test.cpp',
 ]
 foreach test_file: tests_files

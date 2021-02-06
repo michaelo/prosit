@@ -86,8 +86,9 @@ Argparse_Status cli_argparse(int argc, char** argv, CliArguments** arguments_out
 //////////////////////
 // Handlers
 //////////////////////
-App_Status_Code handle_git(Context*, Manifest_Entry*);
 App_Status_Code handle_file(Context*, Manifest_Entry*);
+App_Status_Code handle_git(Context*, Manifest_Entry*);
+App_Status_Code handle_hg(Context*, Manifest_Entry*);
 App_Status_Code handle_https(Context*, Manifest_Entry*);
 
 //////////////////////

@@ -10,39 +10,39 @@
 
 namespace fs = std::filesystem;
 
-TEST(GitTest, shall_clone_remote_repo)
+TEST(HgTest, shall_clone_local_repo)
 {
-    // Verify clone of remote git repo
     ASSERT_TRUE(test_succeeds_and_contains_files(R"(
-        git: https://github.com/michaelo/_prosit_itest > cloned/to/prosit
+        hg: $(PROSIT_ITEST_TESTFILES)/dummy.hg#main > cloned/to/hgdummy
         )", 2, TESTFILEARR{
-            "cloned/to/prosit/.git",
-            "cloned/to/prosit/README.md"
+            "cloned/to/hgdummy/.hg",
+            "cloned/to/hgdummy/README.md"
         }));
 }
 
-TEST(GitTest, shall_clone_remote_repo_and_switch_branch)
+TEST(HgTest, shall_clone_local_repo_and_switch_branch)
 {
     // Verify update existing clone
     Test_Context context;
     test_setup(&context);
     defer(test_teardown(&context));
-    
+    // const char manifest[] = R"manifest()manifest";
     ASSERT_TRUE(test_run_with_manifest_and_contains_files(&context, R"manifest(
-        git: https://github.com/michaelo/_prosit_itest#main > cloned/to/prosit
+        hg: $(PROSIT_ITEST_TESTFILES)/dummy.hg#main > cloned/to/hgdummy
         )manifest", 2, TESTFILEARR{
-            "cloned/to/prosit/.git",
-            "cloned/to/prosit/README.md"
+            "cloned/to/hgdummy/.hg",
+            "cloned/to/hgdummy/README.md"
         }));
 
     ASSERT_TRUE(test_run_with_manifest_and_contains_files(&context, R"manifest(
-        git: https://github.com/michaelo/_prosit_itest#dev > cloned/to/prosit
+        hg: $(PROSIT_ITEST_TESTFILES)/dummy.hg#dev > cloned/to/hgdummy
         )manifest", 1, TESTFILEARR{
-            "cloned/to/prosit/README_devbranch.md"
+            "cloned/to/hgdummy/README_devbranch.md"
         }));
 }
 
 // Verify fail if local folder exists, but is not a repo / or repo with other remote?
+
 
 
 int main(int argc, char **argv)

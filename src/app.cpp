@@ -30,9 +30,11 @@ struct Handler_Definition
 };
 
 static Handler_Definition handlers[] = {
-        {"https", handle_https},
+        {"file", handle_file},
         {"git", handle_git},
-        {"file", handle_file}};
+        {"hg", handle_hg},
+        {"https", handle_https},
+    };
 
 // Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
 bool precheck_manifest(Context *c, CliArguments *a, Manifest *m)

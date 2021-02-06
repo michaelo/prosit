@@ -13,39 +13,13 @@ static constexpr char BASEFOLDER_CHECKFILE[] = "meson.build";
 
 namespace fs = std::filesystem;
 
-bool file_exists_in_path(const char *tmppath, const char* relpath)
+static bool file_exists_in_path(const char *tmppath, const char* relpath)
 {
     char fullpath[MAX_PATH_LEN];
     fullpath[0] = '\0';
     snprintf((char*)fullpath, sizeof(fullpath), "%s/%s", tmppath, relpath);
     std::error_code error_code;
     return fs::exists(fullpath, error_code);
-}
-
-void setup(char *tmppath, size_t tmppath_size)
-{
-    // Creates a temp-dir and returns the path to it
-    std::error_code error_code;
-    fs::path tmp_dir = fs::temp_directory_path(error_code);
-
-    // Assign semi-unique subfolder name to allow parallell runs. Att! Not particularily robust.
-    bool dir_created = false;
-    for(int i=0; i<100; i++) {
-        snprintf(tmppath, tmppath_size, "%s/%s_%d", tmp_dir.c_str(), "prosit_inttest", i);
-        printf("Attempting to create tmp-folder: %s\n", tmppath);
-        if(fs::create_directories(tmppath, error_code)) {
-            printf("Succeeded in creating: %s\n", tmppath);
-            dir_created = true;
-            break;
-        }
-    }
-    assert(dir_created);
-}
-
-void teardown(char *tmppath)
-{
-    // Deletes the folder adressed by tmppath and all of its contents
-    assert(fs::remove_all(tmppath) > 0);
 }
 
 static bool get_first_parent_containing(const char *start_path, char *out_buf, size_t out_buf_size, const char *file_to_check_for)
@@ -64,76 +38,112 @@ static bool get_first_parent_containing(const char *start_path, char *out_buf, s
     return false;
 }
 
-// out_tmppath must be cleaned, and then *out_tmppath deleted
-App_Status_Code basic_app_main_run_no_teardown(const char *manifest, char** out_tmppath)
+// Sets up a temporary folder to be used as a test-workspace. Changes cwd to it.
+void test_setup(Test_Context *context)
 {
+    // Create a tmp-folder.
+    std::error_code error_code;
+    fs::path tmp_dir = fs::temp_directory_path(error_code);
 
+    // Assign semi-unique subfolder name to allow parallell runs. Att! Not particularily robust.
+    bool dir_created = false;
+    {
+        for(int i=0; i<100; i++) {
+            snprintf(context->workspace_path, sizeof(context->workspace_path), "%s/%s_%d", tmp_dir.c_str(), "prosit_inttest", i);
+            printf("Attempting to create tmp-folder: %s\n", context->workspace_path);
+            if(fs::create_directories(context->workspace_path, error_code)) {
+                printf("Succeeded in creating: %s\n", context->workspace_path);
+                dir_created = true;
+                break;
+            }
+        }
+    }
+
+    assert(dir_created);
+
+    // Setup env-variable to point to test-files
     char base_path[256];
+
     assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
-
-    char tmppath_raw[256+128];
-    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles");
-    fs::path testfiles_path = fs::canonical(tmppath_raw);
-    setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);
-
-
-    snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest);
-    fs::path manifest_path = fs::canonical(tmppath_raw);
-
-
-
-    char* tmppath = new char[MAX_PATH_LEN];
-    fs::path initial_path = fs::current_path();
-    setup(tmppath, MAX_PATH_LEN);
-    defer(fs::current_path(initial_path));
-
-    char manifest_arg[1024];
-    snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.u8string().c_str());
-    fs::current_path(tmppath);
-
-    char *argv[] = {
-        (char *)"prosit",
-        (char *)"update",
-        (char *)NULL,
-        (char *)"--verbose"};
-    argv[2] = manifest_arg;
-
-    *out_tmppath = tmppath;
-
-    return app_main(4, argv);
-}
-
-
-App_Status_Code basic_app_main_run(const char *manifest)
-{
-
-    char base_path[MAX_PATH_LEN];
-    assert(get_first_parent_containing(fs::current_path().u8string().c_str(), base_path, sizeof(base_path), BASEFOLDER_CHECKFILE));
-
     char tmppath_raw[MAX_PATH_LEN];
     assert(snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, "test/integration/testfiles") > 0);
     fs::path testfiles_path = fs::canonical(tmppath_raw);
     setenv("PROSIT_ITEST_TESTFILES", (char *)testfiles_path.u8string().c_str(), 1);
 
-    assert(snprintf(tmppath_raw, sizeof(tmppath_raw), "%s/%s", base_path, manifest) > 0);
-    fs::path manifest_path = fs::canonical(tmppath_raw);
+    strncpy(context->pre_test_cwd, fs::current_path().u8string().c_str(), sizeof(context->pre_test_cwd));
+    fs::current_path(context->workspace_path);
+}
+
+App_Status_Code test_run_with_manifest(Test_Context *context, const char* manifest_contents)
+{
+    // Write manifest_contents to workspace/prosit.manifest
+    {
+        char scrap[MAX_PATH_LEN];
+        snprintf(scrap, sizeof(scrap), "%s/prosit.manifest", context->workspace_path);
+        FILE *fp = fopen(scrap, "wb");
+        assert(fp != NULL);
+        defer(fclose(fp));
+
+        fwrite(manifest_contents, strlen(manifest_contents), 1, fp);
+    }
+
+    // Call app_main() and return result
+    // Precondition: cwd is in workspace. 
+    const char *argv[] = {
+        "prosit",
+        "update"};
+
+    return app_main(2, (char**)argv);
+}
 
 
-    char tmppath[MAX_PATH_LEN];
-    fs::path initial_path = fs::current_path();
-    setup(tmppath, MAX_PATH_LEN);
-    defer(teardown(tmppath));
-    defer(fs::current_path(initial_path));
+bool test_run_with_manifest_and_contains_files(Test_Context *context, const char* manifest_contents, size_t files_rel_path_count, TESTFILEARR files_rel_path)
+{
+    if(test_run_with_manifest(context, manifest_contents) != App_Status_Code::Ok) {
+        return false;
+    }
 
-    char manifest_arg[1024];
-    snprintf(manifest_arg, sizeof(manifest_arg), "--manifest=%s", manifest_path.u8string().c_str());
-    fs::current_path(tmppath);
+    for(size_t i=0; i<files_rel_path_count; i++) {
+        if(!file_exists_in_path(context->workspace_path, files_rel_path[i])) {
+            fprintf(stderr, "ERROR: %s not found in workspace (%s)\n", files_rel_path[i], context->workspace_path);
+            return false;
+        }
+    }
+    return true;
+}
 
-    char *argv[] = {
-        (char *)"prosit",
-        (char *)"update",
-        (char *)NULL};
-    argv[2] = manifest_arg;
+void test_teardown(Test_Context *context)
+{
+    // Set cwd back to initial dir
+    fs::current_path(context->pre_test_cwd);
+    // Delete tmp-folder
+    fs::remove_all(context->workspace_path);
+}
 
-    return app_main(3, argv);
+
+App_Status_Code test_allinone(const char* manifest_contents) {
+    Test_Context context;
+    test_setup(&context);
+    defer(test_teardown(&context));
+
+    return test_run_with_manifest(&context, manifest_contents);
+}
+
+bool test_succeeds_and_contains_files(const char* manifest_contents, size_t files_rel_path_count, TESTFILEARR files_rel_path) {
+    Test_Context context;
+    test_setup(&context);
+    defer(test_teardown(&context));
+
+    if(test_run_with_manifest(&context, manifest_contents) != App_Status_Code::Ok) {
+        return false;
+    }
+
+    for(size_t i=0; i<files_rel_path_count; i++) {
+        if(!file_exists_in_path(context.workspace_path, files_rel_path[i])) {
+            fprintf(stderr, "ERROR: %s not found in workspace (%s)\n", files_rel_path[i], context.workspace_path);
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -1,8 +1,9 @@
 src_lib_files = files([
     'argparse.cpp',
     'app.cpp',
-    'handle_git.cpp',
     'handle_file.cpp',
+    'handle_git.cpp',
+    'handle_hg.cpp',
     'handle_https.cpp',
     'manifest.cpp',
     'platform.cpp',

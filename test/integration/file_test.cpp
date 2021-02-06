@@ -10,37 +10,44 @@
 
 namespace fs = std::filesystem;
 
-TEST(FileTest, test_file)
+TEST(FileTest, shall_copy_to_specific_file_name)
 {
-    char* tmppath;
+    Test_Context context;
+    test_setup(&context);
+    defer(test_teardown(&context));
 
-    // Copy local file to specific dest name
-    {
-        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/file.manifest", &tmppath);
-        defer({
-            teardown(tmppath);
-            delete(tmppath);
-        });
-        ASSERT_EQ(result, App_Status_Code::Ok);
-        ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
-        ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
-    }
-    
-    
-    // Copy local file to folder (keeps original filename)
-    {
-        App_Status_Code result = basic_app_main_run_no_teardown("test/integration/testfiles/file_no_dest_name.manifest", &tmppath);
-        defer({
-            teardown(tmppath);
-            delete(tmppath);
-        });
-        ASSERT_EQ(result, App_Status_Code::Ok);
-        ASSERT_TRUE(file_exists_in_path(tmppath, "dummy.txt"));
-        ASSERT_TRUE(file_exists_in_path(tmppath, "folder/dummy.txt"));
-    }
+    ASSERT_TRUE(test_run_with_manifest_and_contains_files(&context, R"(
+        file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > dummy.txt
+        file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > folder/dummy.txt
+    )", 2, 
+        TESTFILEARR{
+            "dummy.txt",
+            "folder/dummy.txt"
+        }));
+}
 
+TEST(FileTest, shall_copy_to_specific_folder_and_keep_source_name)
+{
+    Test_Context context;
+    test_setup(&context);
+    defer(test_teardown(&context));
+
+    ASSERT_TRUE(test_run_with_manifest_and_contains_files(&context, R"(
+file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > ./
+file: $(PROSIT_ITEST_TESTFILES)/dummy.txt > folder/
+    )", 2, 
+        TESTFILEARR{
+            "dummy.txt",
+            "folder/dummy.txt"
+        }));
+}
+
+TEST(FileTest, shall_fail_if_src_doesnt_exist)
+{
     // Fails if src does not exist
-    ASSERT_NE(basic_app_main_run("test/integration/testfiles/file_src_not_exist.manifest"), App_Status_Code::Ok);
+    ASSERT_NE(test_allinone(R"manifest(
+file: /no/such/file/can/possibly/exist > file.txt
+    )manifest"), App_Status_Code::Ok);
 }
 
 int main(int argc, char **argv)
