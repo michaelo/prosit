@@ -18,7 +18,7 @@ then
 # meson --buildtype=$BUILDTYPE xbuild/ubuntu --reconfigure
 # else
 echo Setting up fresh build dir
-meson --buildtype=$BUILDTYPE  xbuild/ubuntu_$BUILDTYPE
+CC=clang CXX=clang++ meson --buildtype=$BUILDTYPE  xbuild/ubuntu_$BUILDTYPE
 fi
 
 cd xbuild/ubuntu_$BUILDTYPE
