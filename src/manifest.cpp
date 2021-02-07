@@ -18,7 +18,8 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
     buf_pr_token(buf, "\r\n", [manifest, &any_errors, &num_entries, &line_no](char *line) {
         line_no++;
         size_t line_len = strlen(line);
-        if(line_len==0) {
+        if (line_len == 0)
+        {
             return;
         }
         // Ignore comment-lines
@@ -29,7 +30,7 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
 
         // Ignore all-space lines
         {
-            int start_i=0;
+            int start_i = 0;
             bool all_space = true;
             for (size_t i = 0; i < line_len; i++)
             {
@@ -50,20 +51,29 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
             line = &line[start_i];
         }
 
-        char* type_sep = strchr(line, ':');
-        char* srcdest_sep = strchr(type_sep, '>');
-
-        if (type_sep && srcdest_sep)
-        {
-            *type_sep = '\0';
-            *srcdest_sep = '\0';
-
-            strncpy(manifest->entries[num_entries].type, line, sizeof(manifest->entries[num_entries].type));
-            strncpy(manifest->entries[num_entries].src, type_sep+1, sizeof(manifest->entries[num_entries].src));
-            strncpy(manifest->entries[num_entries].dst, srcdest_sep+1, sizeof(manifest->entries[num_entries].dst));
+        char *type_sep, *srcdest_sep;
+        type_sep = strchr(line, ':');
+        if(type_sep) {
+            srcdest_sep = strchr(type_sep, '>');
         }
 
+        if (!(type_sep && srcdest_sep))
+        {
+            fprintf(stderr, "ERROR: Could not parse line %d\n", line_no);
+            any_errors = true;
+            return;
+        }
+
+        // Extract
+        *type_sep = '\0';
+        *srcdest_sep = '\0';
+        strncpy(manifest->entries[num_entries].type, line, sizeof(manifest->entries[num_entries].type));
+        strncpy(manifest->entries[num_entries].src, type_sep + 1, sizeof(manifest->entries[num_entries].src));
+        strncpy(manifest->entries[num_entries].dst, srcdest_sep + 1, sizeof(manifest->entries[num_entries].dst));
+
         manifest->entries[num_entries].line_in_manifest = line_no;
+
+        // Cleanup / trim
         string_trim(manifest->entries[num_entries].type);
         string_trim(manifest->entries[num_entries].src);
         string_trim(manifest->entries[num_entries].dst);
@@ -75,8 +85,12 @@ bool manifest_parse_buf(char *buf, Manifest **manifest_out)
     manifest->length = num_entries;
 
     // *manifest_out = manifest;
-    *manifest_out = new Manifest;
-    memcpy(*manifest_out, manifest, sizeof(Manifest));
+    if (!any_errors && manifest_out)
+    {
+        *manifest_out = new Manifest;
+        memcpy(*manifest_out, manifest, sizeof(Manifest));
+    }
+
     return !any_errors;
 }
 

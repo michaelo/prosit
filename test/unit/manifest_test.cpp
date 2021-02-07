@@ -9,7 +9,15 @@ TEST(ManifestTest, ParseEmpty)
     char manifest_empty[] = "";
     Manifest *m;
     ASSERT_TRUE(manifest_parse_buf(manifest_empty, &m));
+    manifest_free(m);
     ASSERT_EQ(m->length, 0);
+}
+
+TEST(ManifestTest, FailOnGarbage)
+{
+    char manifest[] = "asdfa";
+    Manifest *m;
+    ASSERT_FALSE(manifest_parse_buf(manifest, &m));
 }
 
 TEST(ManifestTest, ParseEntries)
@@ -87,13 +95,13 @@ TEST(ManifestTest, DebugEnvVariableIssueWithLongMaxText)
 )manifest";
 
         setenv("PROSIT_ITEST_TESTFILES", "/Users/michaelodden/dev/prosit/test/integration/testfiles", 1);
-        manifest_parse_buf(buf, &m);
+        if(manifest_parse_buf(buf, &m)) {
+            ASSERT_STREQ(m->entries[0].type, "file");
+            ASSERT_STREQ(m->entries[0].src, "/Users/michaelodden/dev/prosit/test/integration/testfiles/dummy.txt");
+            ASSERT_STREQ(m->entries[0].dst, "dummy.txt");
 
-        ASSERT_STREQ(m->entries[0].type, "file");
-        ASSERT_STREQ(m->entries[0].src, "/Users/michaelodden/dev/prosit/test/integration/testfiles/dummy.txt");
-        ASSERT_STREQ(m->entries[0].dst, "dummy.txt");
-
-        manifest_free(m);
+            manifest_free(m);
+        }
     }
 }
 
