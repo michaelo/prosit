@@ -54,10 +54,10 @@ Supported for v1.0:
 * git
 * file
 * https/http (with basic auth)
+* hg
 
 Future:
 * dir
-* hg
 * https (with other auths)
 * orthogonal to file and https: extraction of archive
 
