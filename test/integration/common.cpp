@@ -29,8 +29,8 @@ static bool get_first_parent_containing(const char *start_path, char *out_buf, s
 
     int i = 0;
     while(fs::exists(current) && i++ < MAX_BASEFOLDER_CHECK_STEPS) {
-        if(file_exists_in_path(current.c_str(), file_to_check_for)) {
-            strncpy(out_buf, current.c_str(), out_buf_size);
+        if(file_exists_in_path(current.u8string().c_str(), file_to_check_for)) {
+            strncpy(out_buf, current.u8string().c_str(), out_buf_size);
             return true;
         }
         current = current.parent_path();

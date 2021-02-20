@@ -12,7 +12,7 @@ src_lib_files = files([
 
 deps = [
     # dependency('openssl'),
-    dependency('libcurl')
+    dependency('libcurl', static:true)
 ]
 
 conf_data = configuration_data()
