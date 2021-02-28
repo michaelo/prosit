@@ -1,5 +1,5 @@
 project('prosit', 'cpp',
-  version : '0.1.0',
+  version : '1.0.0-rc1',
   default_options : [
     'warning_level=3',
     'cpp_std=c++17',
