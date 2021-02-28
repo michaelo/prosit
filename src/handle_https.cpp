@@ -87,7 +87,7 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
             std::error_code error_code;
             fs::path dst_folder = fs::weakly_canonical(e->dst, error_code).parent_path();
 
-            if(!fs::exists(dst_folder, error_code) && !fs::create_directories(dst_folder, error_code))
+            if(dst_folder.string().length() > 0 && !fs::exists(dst_folder, error_code) && !fs::create_directories(dst_folder, error_code))
             {
                 c->error("Could not download file: %s. Could not create destination directory\n", e->src);
                 return App_Status_Code::Error;

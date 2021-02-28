@@ -18,6 +18,7 @@
 * More HTTP/S authentication methods:
     * Bearer?
     - Evaluate e.g. what Artifactory and such uses
+* Sign .exe
 
 ### Future
 * Recursive processing? I.e. if a pulled resource contains `prosit.manifest` - shall we process it?
@@ -36,6 +37,7 @@
 ## General / techdebt
 * Clean up use of std. Make more consistent how and when it's used. Right now there are a lot of mix between char*, std::string and std::filesyste::path.
 * Output-handling when --multithreaded (for system() in particular): Redirect to temporary files , then batch up and dump data once entry finished. Must lock output.
+* test_teardown fails to delete temporary area after git-related tests
 
 ## Packaging
 

@@ -1,6 +1,7 @@
 #include "app.h"
 #include "test.h"
 
+#include "mlib/defer.imp.h"
 #include "platform.h"
 
 
@@ -9,7 +10,7 @@ TEST(ManifestTest, ParseEmpty)
     char manifest_empty[] = "";
     Manifest *m;
     ASSERT_TRUE(manifest_parse_buf(manifest_empty, &m));
-    manifest_free(m);
+    defer(manifest_free(m));
     ASSERT_EQ(m->length, 0);
 }
 

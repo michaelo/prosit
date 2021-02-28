@@ -49,7 +49,7 @@ void test_setup(Test_Context *context)
     bool dir_created = false;
     {
         for(int i=0; i<100; i++) {
-            snprintf(context->workspace_path, sizeof(context->workspace_path), "%s/%s_%d", tmp_dir.c_str(), "prosit_inttest", i);
+            snprintf(context->workspace_path, sizeof(context->workspace_path), "%s/%s_%d", tmp_dir.u8string().c_str(), "prosit_inttest", i);
             printf("Attempting to create tmp-folder: %s\n", context->workspace_path);
             if(fs::create_directories(context->workspace_path, error_code)) {
                 printf("Succeeded in creating: %s\n", context->workspace_path);
@@ -114,10 +114,15 @@ bool test_run_with_manifest_and_contains_files(Test_Context *context, const char
 
 void test_teardown(Test_Context *context)
 {
+    std::error_code error_code;
     // Set cwd back to initial dir
     fs::current_path(context->pre_test_cwd);
     // Delete tmp-folder
-    fs::remove_all(context->workspace_path);
+    if(fs::remove_all(context->workspace_path, error_code) == -1)
+    {
+        // TODO: This has been observed for git-related tests under Windows 10. This will eventually cause the need for manual cleanup in temp-folder
+        fprintf(stderr, "ERROR: Could not remove temporary files at %s (%s)\n", context->workspace_path, error_code.message().c_str());
+    }
 }
 
 
@@ -144,6 +149,5 @@ bool test_succeeds_and_contains_files(const char* manifest_contents, size_t file
             return false;
         }
     }
-
     return true;
 }
