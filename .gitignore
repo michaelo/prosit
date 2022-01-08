@@ -3,3 +3,4 @@ xbuild/
 tmp/
 .vscode/
 subprojects/**/
+zig-*/
