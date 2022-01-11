@@ -12,6 +12,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("prosit", "src/main.zig");
+    exe.linkLibC(); // TODO: Evaluate if we can avoid
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
@@ -25,9 +26,26 @@ pub fn build(b: *std.build.Builder) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    var exe_tests = b.addTest("src/main.zig");
+    var exe_tests = b.addTest("src/app.zig");
     exe_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);
+
+    if(target.isNative()) {
+        // Create a separate itest-exe that links the main app?
+        var exe_itests = b.addTest("test/e2e/main.zig");
+        exe_itests.linkLibC();
+        exe_itests.setTarget(target);
+        exe_itests.setBuildMode(mode);
+        exe_itests.setFilter("e2e:"); // Run only tests prefixed with "integration:"
+        exe_itests.setMainPkgPath("."); // To allow access to src/ as well
+
+        // exe_itests.linkSystemLibrary("c");
+        // exe_itests.linkSystemLibrary("libcurl");
+
+        const itest_step = b.step("itest", "Run default integration test suite");
+        itest_step.dependOn(&exe_itests.step);
+    }
+
 }

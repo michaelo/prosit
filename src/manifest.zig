@@ -4,6 +4,9 @@ const testing = std.testing;
 
 const debug = std.debug.print;
 
+// TODO: Determine strategy. Pass in a slice with capacity, and return a new length?
+// fn expandEnvVars()
+
 const EntryType = enum {
     git,
     file,
