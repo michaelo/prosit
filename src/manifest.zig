@@ -53,41 +53,92 @@ const Manifest = struct {
 
     fn precheck() bool {}
 
-    
-    fn fromBuf(buf: []const u8) !Manifest {
+    fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) !Manifest {
         // TBD: allocate?
         var result = Manifest{};
 
         var line_it = std.mem.tokenize(u8, buf, getLineEnding(buf));
         var line_idx: usize = 0;
-        while(line_it.next()) |line_raw| : (line_idx += 1) {
+        while (line_it.next()) |line_raw| : (line_idx += 1) {
             var line = std.mem.trim(u8, line_raw, " \t");
 
             // Skip empties and comments
-            if(line.len == 0) continue;
-            if(line[0] == '#') continue;
+            if (line.len == 0) continue;
+            if (line[0] == '#') continue;
 
             // Parse entry
             // format: <type>: <source> > <dest>[flags]
             const type_sep = ": ";
             const src_dest_sep = " > ";
 
-            if(std.mem.indexOf(u8, line, type_sep)) |idx_colon| {
-                if(std.mem.indexOf(u8, line, src_dest_sep)) |idx_redirect| {
+            if (std.mem.indexOf(u8, line, type_sep)) |idx_colon| {
+                if (std.mem.indexOf(u8, line, src_dest_sep)) |idx_redirect| {
                     var maybe_type = std.mem.trim(u8, line[0..idx_colon], " \t");
-                    var maybe_src = std.mem.trim(u8, line[idx_colon+type_sep.len..idx_redirect], " \t");
-                    var maybe_dst = std.mem.trim(u8, line[idx_redirect+src_dest_sep.len..], " \t");
+                    var maybe_src = std.mem.trim(u8, line[idx_colon + type_sep.len .. idx_redirect], " \t");
+                    var maybe_dst = std.mem.trim(u8, line[idx_redirect + src_dest_sep.len ..], " \t");
                     // TODO: Support flags
-                    // TODO: Expand environment-variables. TBD: Shall that be done on raw file, or after entries are parsed?
 
                     try result.entries.append(try ManifestEntry.create(line_idx, maybe_type, maybe_src, maybe_dst));
                 }
             }
         }
 
+        // Expand variables
+        if (maybe_env) |env| {
+            for (result.entries.slice()) |*entry| {
+                try expandVariablesInBounded(entry.src.buffer.len, &entry.src, env);
+                try expandVariablesInBounded(entry.dst.buffer.len, &entry.dst, env);
+            }
+        }
+
         return result;
     }
 };
+
+fn expandVariablesInBounded(comptime capacity: usize, str: *std.BoundedArray(u8, capacity), env: *const std.BufMap) !void {
+    var start_idx: usize = 0;
+
+    while (std.mem.indexOf(u8, str.slice()[start_idx..], "$(")) |cand_start| {
+        if (std.mem.indexOf(u8, str.slice()[start_idx + cand_start ..], ")")) |cand_end| {
+            // Got pair!
+            var var_key = str.slice()[start_idx + cand_start + 2 .. start_idx + cand_start + cand_end];
+
+            if (env.get(var_key)) |var_value| {
+                try str.replaceRange(start_idx + cand_start, cand_end + 1, var_value);
+            }
+
+            start_idx += cand_start + cand_end + 1;
+
+            // Variable ends at end of string?
+            if(start_idx >= str.slice().len) break;
+        }
+    }
+}
+
+test "expandVariablesInBounded" {
+    var env = std.BufMap.init(std.testing.allocator);
+    defer env.deinit();
+
+    try env.put("var", "value");
+
+    {
+        var mystr = try std.BoundedArray(u8, 1024).fromSlice("$(var)");
+        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try testing.expectEqualStrings("value", mystr.slice());
+    }
+
+    {
+        var mystr = try std.BoundedArray(u8, 1024).fromSlice("pre$(var)post");
+        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try testing.expectEqualStrings("prevaluepost", mystr.slice());
+    }
+
+    {
+        var mystr = try std.BoundedArray(u8, 1024).fromSlice("pre$(var)in$(var)post");
+        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try testing.expectEqualStrings("prevalueinvaluepost", mystr.slice());
+    }
+}
 
 test "Manifest.fromBuf" {
     // Empty
@@ -96,7 +147,7 @@ test "Manifest.fromBuf" {
             \\
         ;
 
-        var manifest = try Manifest.fromBuf(buf);
+        var manifest = try Manifest.fromBuf(buf, null);
         try testing.expectEqual(@as(usize, 0), manifest.len());
     }
 
@@ -106,7 +157,7 @@ test "Manifest.fromBuf" {
             \\# git-repo from local path
             \\git: /my/remote/repo.git#main > ./path/to/local/clone
         ;
-        var manifest = try Manifest.fromBuf(buf);
+        var manifest = try Manifest.fromBuf(buf, null);
         try testing.expectEqual(@as(usize, 1), manifest.len());
         try testing.expectEqual(EntryType.git, manifest.slice()[0].entry_type);
     }
@@ -120,7 +171,7 @@ test "Manifest.fromBuf" {
             \\# Other comment here
             \\git: https://localhost:8999/dummy.git#tagv1 > ./path/to/local/clone
         ;
-        var manifest = try Manifest.fromBuf(buf);
+        var manifest = try Manifest.fromBuf(buf, null);
         try testing.expectEqual(@as(usize, 2), manifest.len());
 
         var entry_one = manifest.slice()[0];
@@ -136,9 +187,25 @@ test "Manifest.fromBuf" {
 }
 
 test "Manifest.fromBuf shall expand environment variables" {
-    
-}
+    // Single entry, w comments
+    {
+        var buf =
+            \\git: $(src_repo)#$(src_ref) > $(dst_path)
+        ;
+        var env = std.BufMap.init(std.testing.allocator);
+        defer env.deinit();
 
+        try env.put("src_repo", "somerepouri");
+        try env.put("src_ref", "main");
+        try env.put("dst_path", "./local/path/here");
+
+        var manifest = try Manifest.fromBuf(buf, &env);
+        try testing.expectEqual(@as(usize, 1), manifest.len());
+        try testing.expectEqual(EntryType.git, manifest.slice()[0].entry_type);
+        try testing.expectEqualStrings("somerepouri#main", manifest.slice()[0].src.slice());
+        try testing.expectEqualStrings("./local/path/here", manifest.slice()[0].dst.slice());
+    }
+}
 
 pub fn getLineEnding(buf: []const u8) []const u8 {
     if (std.mem.indexOf(u8, buf, "\r\n") != null) return "\r\n";
