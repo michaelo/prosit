@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-
 const testing = std.testing;
 const debug = std.debug.print;
 
@@ -18,7 +17,10 @@ pub const APP_VERSION = blk: {
     }
 };
 
-const HandlerFunc = fn(*ManifestEntry)anyerror!void;
+///! Interface definition for update-handlers
+///! TBD: Pass in a context with terminal-outputters + exec-handler?
+///! TBD: Include Console from sapt?
+const HandlerFunc = fn(std.mem.Allocator, *ManifestEntry)anyerror!void;
 
 ///! Array index by enum representing each update-handler
 const handlers = blk: {
@@ -27,13 +29,14 @@ const handlers = blk: {
     var handlers_arr: [fields_info.len]HandlerFunc = undefined;
 
     handlers_arr[@enumToInt(EntryType.file)] = @import("handle_file.zig").update;
+    handlers_arr[@enumToInt(EntryType.git)] = @import("handle_git.zig").update;
 
     break :blk handlers_arr;
 };
 
 ///! Convenience-function forwarding a manifest-entry to appropriate handler
-fn update(entry:*ManifestEntry) anyerror!void {
-    return handlers[@enumToInt(entry.entry_type)](entry);
+fn update(allocator: std.mem.Allocator, entry:*ManifestEntry) anyerror!void {
+    return handlers[@enumToInt(entry.entry_type)](allocator, entry);
 }
 
 const errors = error{ ParseError, CouldNotReadManifest, ProcessError };
@@ -233,15 +236,13 @@ pub fn main(args: *AppArgs, envMap: *const std.BufMap) errors!void {
         return errors.ParseError;
     };
 
-    //
-
+    // Handle according to subcommand
     if (args.subcommand) |subcommand| switch (subcommand) {
         SubCommand.update => {
-            // TODO: Implement update-logic
             for(manifest.entries.slice()) |*entry| {
-                debug("entry(line: {d}): {s} > {s}\n", .{entry.source_line, entry.src.constSlice(), entry.dst.constSlice()});
-                update(entry) catch {
-                    debug("ERROR: update failed for entry at line: {d}\n", .{entry.source_line});
+                debug("DEBUG: Processing entry @ line: {d}: {s} {s} > {s}\n", .{entry.source_line, entry.entry_type, entry.src.constSlice(), entry.dst.constSlice()});
+                update(allocator, entry) catch {
+                    debug("ERROR: Update failed for entry at line: {d}\n", .{entry.source_line});
                     return errors.ProcessError;
                 };
             }
@@ -253,7 +254,7 @@ pub fn main(args: *AppArgs, envMap: *const std.BufMap) errors!void {
 
 ///! CLI-wrapper: TODO: Accept env-buffer
 ///! TBD: Support multiple output modes? E.g. stdout/err vs write to buffer which can be analyzed?
-pub fn cliMain(args: [][]const u8, envMap: std.BufMap) anyerror!void {
+pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) anyerror!void {
     var parsedArgs = parseArgs(args[0..]) catch |e| switch (e) {
         error.OkExit => {
             return;
@@ -269,7 +270,7 @@ pub fn cliMain(args: [][]const u8, envMap: std.BufMap) anyerror!void {
     // }
 
     // Do, then convert common errors to appropraite error messages
-    return main(&parsedArgs, &envMap) catch |e| switch (e) {
+    return main(&parsedArgs, envMap) catch |e| switch (e) {
         errors.CouldNotReadManifest => {
             debug("Could not read manifest-file: {s}\n", .{parsedArgs.manifest_path.slice()});
         },
@@ -277,4 +278,85 @@ pub fn cliMain(args: [][]const u8, envMap: std.BufMap) anyerror!void {
             debug("DEBUG: Unhandled error: {s}\n", .{e});
         },
     };
+}
+
+// TODO: Return status Ok/Error based on return code?
+fn runCmdAndPrintAll(allocator: std.mem.Allocator, cmd: []const u8) !void {
+    var args = [_][]const u8{cmd};
+
+    var result = try std.ChildProcess.exec(.{
+        .allocator = allocator,
+        .argv = args[0..],
+        .env_map = null,
+    });
+    defer allocator.free(result.stderr);
+    defer allocator.free(result.stdout);
+
+    // TBD: prefix all lines?
+    if (result.stdout.len > 0) {
+        debug("stdout: {s}\n", .{result.stdout});
+    }
+
+    if (result.stderr.len > 0) {
+        debug("stderr: {s}\n", .{result.stderr});
+    }
+}
+
+/// Autosense buffer for type of line ending: Check buf for \r\n, and if found: return \r\n, otherwise \n
+fn getLineEnding(buf: []const u8) []const u8 {
+    if (std.mem.indexOf(u8, buf, "\r\n") != null) return "\r\n";
+    return "\n";
+}
+
+fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8) void {
+    if (buf.len == 0) return;
+
+    var line_end = getLineEnding(buf);
+    var line_it = std.mem.split(u8, buf, line_end);
+    while (line_it.next()) |line| {
+        debug("{s} {s}{s}", .{ prefix, line, line_end });
+    }
+}
+
+pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, cmd: []const []const u8) !usize {
+    debug("DEBUG: executing {s}\n", .{cmd});
+
+    var result = try std.ChildProcess.exec(.{
+        .allocator = allocator,
+        .argv = cmd[0..],
+        .env_map = null,
+    });
+    defer allocator.free(result.stderr);
+    defer allocator.free(result.stdout);
+
+    // TBD: prefix all lines?
+    printAllLinesWithPrefix(result.stdout, "stdout: ");
+    printAllLinesWithPrefix(result.stderr, "stderr: ");
+
+    return result.term.Exited;
+}
+
+///! Utility function, returns a slice of references to the default values in the provided struct/tuple
+///! TBD: Might not be useful unless we can support runtime-values as well
+pub fn fields(cmd: anytype) [][]const u8 {
+    const ArgsType = @TypeOf(cmd);
+    if (@typeInfo(ArgsType) != .Struct) {
+        @compileError("Expected tuple or struct argument, found " ++ @typeName(ArgsType));
+    }
+    const fields_info = std.meta.fields(ArgsType);
+
+    comptime
+    {
+        var results: [fields_info.len][]const u8 = undefined;
+        for (fields_info) |field_info, i| {
+            results[i] = @field(cmd, field_info.name);
+        }
+
+        return results[0..];
+    }
+}
+
+test "runCmd" {
+    var arg = "--help";
+    _ = try runCmdAndPrintAllPrefixed(std.testing.allocator, fields(.{ "git", arg[0..] }));
 }

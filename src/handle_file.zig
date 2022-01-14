@@ -6,7 +6,8 @@ const app = @import("app.zig");
 const debug = std.debug.print;
 
 ///!
-pub fn update(entry: *ManifestEntry) !void {
+pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
+    _ = allocator;
     // If dst ends with dir-separator: keep source-name
     // If dst-folder doesn't exist: create it
     // TBD: If src is folder: copy all contents?

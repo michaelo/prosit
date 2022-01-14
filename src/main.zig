@@ -13,7 +13,7 @@ pub fn main() anyerror!void {
     var envMap = try std.process.getEnvMap(aa);
     defer envMap.deinit();
 
-    app.cliMain(args[1..], envMap) catch {
+    app.cliMain(args[1..], &envMap) catch {
         std.process.exit(1);
     };
 }
