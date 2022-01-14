@@ -10,7 +10,10 @@ pub fn main() anyerror!void {
     const args = try std.process.argsAlloc(aa);
     defer std.process.argsFree(aa, args);
 
-    app.cliMain(args[1..]) catch {
+    var envMap = try std.process.getEnvMap(aa);
+    defer envMap.deinit();
+
+    app.cliMain(args[1..], envMap) catch {
         std.process.exit(1);
     };
 }

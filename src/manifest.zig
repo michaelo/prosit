@@ -4,10 +4,7 @@ const testing = std.testing;
 
 const debug = std.debug.print;
 
-// TODO: Determine strategy. Pass in a slice with capacity, and return a new length?
-// fn expandEnvVars()
-
-const EntryType = enum {
+pub const EntryType = enum {
     git,
     file,
     hg,
@@ -18,7 +15,7 @@ const EntryType = enum {
     }
 };
 
-const ManifestEntry = struct {
+pub const ManifestEntry = struct {
     source_line: usize,
     entry_type: EntryType,
     src: std.BoundedArray(u8, 2048),
@@ -35,30 +32,49 @@ const ManifestEntry = struct {
 };
 
 // TODO: Can make fromBuf a standalone function which simply returns a BoundedArray.
-const Manifest = struct {
+pub const Manifest = struct {
     const Self = @This();
     entries: std.BoundedArray(ManifestEntry, 128) = std.BoundedArray(ManifestEntry, 128).init(0) catch unreachable,
 
-    fn len(self: *Self) usize {
+    pub fn len(self: *Self) usize {
         return self.entries.constSlice().len;
     }
 
-    fn slice(self: *Self) []ManifestEntry {
+    pub fn slice(self: *Self) []ManifestEntry {
         return self.entries.slice();
     }
 
-    fn constSlice(self: *Self) []ManifestEntry {
+    pub fn constSlice(self: *Self) []ManifestEntry {
         return self.entries.constSlice();
     }
 
-    fn precheck() bool {}
+    pub fn precheck() bool {}
 
-    fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) !Manifest {
+    fn parseLine(line_idx: usize, line: []const u8) !ManifestEntry {
+        // format: <type>: <source> > <dest>[flags]
+        const type_sep = ": ";
+        const src_dest_sep = " > ";
+
+        if (std.mem.indexOf(u8, line, type_sep)) |idx_colon| {
+            if (std.mem.indexOf(u8, line, src_dest_sep)) |idx_redirect| {
+                var maybe_type = std.mem.trim(u8, line[0..idx_colon], " \t");
+                var maybe_src = std.mem.trim(u8, line[idx_colon + type_sep.len .. idx_redirect], " \t");
+                var maybe_dst = std.mem.trim(u8, line[idx_redirect + src_dest_sep.len ..], " \t");
+                // TODO: Support flags
+
+                return try ManifestEntry.create(line_idx, maybe_type, maybe_src, maybe_dst);
+            }
+        }
+
+        return error.CouldNotParseManifestLine;
+    }
+
+    pub fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) !Manifest {
         // TBD: allocate?
         var result = Manifest{};
 
         var line_it = std.mem.tokenize(u8, buf, getLineEnding(buf));
-        var line_idx: usize = 0;
+        var line_idx: usize = 1;
         while (line_it.next()) |line_raw| : (line_idx += 1) {
             var line = std.mem.trim(u8, line_raw, " \t");
 
@@ -67,20 +83,12 @@ const Manifest = struct {
             if (line[0] == '#') continue;
 
             // Parse entry
-            // format: <type>: <source> > <dest>[flags]
-            const type_sep = ": ";
-            const src_dest_sep = " > ";
 
-            if (std.mem.indexOf(u8, line, type_sep)) |idx_colon| {
-                if (std.mem.indexOf(u8, line, src_dest_sep)) |idx_redirect| {
-                    var maybe_type = std.mem.trim(u8, line[0..idx_colon], " \t");
-                    var maybe_src = std.mem.trim(u8, line[idx_colon + type_sep.len .. idx_redirect], " \t");
-                    var maybe_dst = std.mem.trim(u8, line[idx_redirect + src_dest_sep.len ..], " \t");
-                    // TODO: Support flags
-
-                    try result.entries.append(try ManifestEntry.create(line_idx, maybe_type, maybe_src, maybe_dst));
-                }
-            }
+            try result.entries.append(parseLine(line_idx, line) catch |e| {
+                debug("Failed parsing manifest.json line {d}: {s}\n", .{line_idx, e});
+                // TODO: Early fail?
+                continue;
+            });
         }
 
         // Expand variables
@@ -95,6 +103,7 @@ const Manifest = struct {
     }
 };
 
+///! Scans the str for $(var)-patterns, and if found attempts to look 'var' up from env and if found there; replace it in str.
 fn expandVariablesInBounded(comptime capacity: usize, str: *std.BoundedArray(u8, capacity), env: *const std.BufMap) !void {
     var start_idx: usize = 0;
 
