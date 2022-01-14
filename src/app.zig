@@ -20,6 +20,7 @@ pub const APP_VERSION = blk: {
 
 const HandlerFunc = fn(*ManifestEntry)anyerror!void;
 
+///! Array index by enum representing each update-handler
 const handlers = blk: {
     const fields_info = std.meta.fields(EntryType);
 
@@ -30,6 +31,7 @@ const handlers = blk: {
     break :blk handlers_arr;
 };
 
+///! Convenience-function forwarding a manifest-entry to appropriate handler
 fn update(entry:*ManifestEntry) anyerror!void {
     return handlers[@enumToInt(entry.entry_type)](entry);
 }
@@ -222,7 +224,7 @@ pub fn main(args: *AppArgs, envMap: *const std.BufMap) errors!void {
 
     // Parse manifest
     // Read file
-    var manifest_data = readFile(allocator, std.fs.cwd(), "prosit.manifest") catch |e| {
+    var manifest_data = readFile(allocator, std.fs.cwd(), args.manifest_path.slice()) catch |e| {
         debug("ERROR reading manifest: {s}\n", .{e});
         return errors.CouldNotReadManifest;
     };
