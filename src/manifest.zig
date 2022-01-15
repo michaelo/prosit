@@ -4,6 +4,8 @@ const testing = std.testing;
 
 const debug = std.debug.print;
 
+const errors = error{ InvalidSyntax, OutOfBounds, VariableNotFound, UnknownType };
+
 pub const EntryType = enum {
     git,
     file,
@@ -21,12 +23,18 @@ pub const ManifestEntry = struct {
     src: std.BoundedArray(u8, 2048),
     dst: std.BoundedArray(u8, 2048),
 
-    fn create(source_line: usize, entry_type: []const u8, src: []const u8, dst: []const u8) !ManifestEntry {
+    fn create(source_line: usize, entry_type: []const u8, src: []const u8, dst: []const u8) errors!ManifestEntry {
         return ManifestEntry{
             .source_line = source_line,
-            .entry_type = try EntryType.fromString(entry_type),
-            .src = try std.BoundedArray(u8, 2048).fromSlice(src),
-            .dst = try std.BoundedArray(u8, 2048).fromSlice(dst),
+            .entry_type = EntryType.fromString(entry_type) catch {
+                return errors.UnknownType;
+            },
+            .src = std.BoundedArray(u8, 2048).fromSlice(src) catch {
+                return errors.OutOfBounds;
+            },
+            .dst = std.BoundedArray(u8, 2048).fromSlice(dst) catch {
+                return errors.OutOfBounds;
+            },
         };
     }
 };
@@ -50,7 +58,7 @@ pub const Manifest = struct {
 
     pub fn precheck() bool {}
 
-    fn parseLine(line_idx: usize, line: []const u8) !ManifestEntry {
+    fn parseLine(line_idx: usize, line: []const u8) errors!ManifestEntry {
         // format: <type>: <source> > <dest>[flags]
         const type_sep = ": ";
         const src_dest_sep = " > ";
@@ -66,11 +74,10 @@ pub const Manifest = struct {
             }
         }
 
-        return error.CouldNotParseManifestLine;
+        return error.InvalidSyntax;
     }
 
-    pub fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) !Manifest {
-        // TBD: allocate?
+    pub fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) errors!Manifest {
         var result = Manifest{};
 
         var line_it = std.mem.tokenize(u8, buf, getLineEnding(buf));
@@ -82,20 +89,27 @@ pub const Manifest = struct {
             if (line.len == 0) continue;
             if (line[0] == '#') continue;
 
-            // Parse entry
-
-            try result.entries.append(parseLine(line_idx, line) catch |e| {
-                debug("Failed parsing manifest.json line {d}: {s}\n", .{line_idx, e});
-                // TODO: Early fail?
-                continue;
-            });
+            // Parse entry and add to list
+            result.entries.append(parseLine(line_idx, line) catch |e| {
+                debug("ERROR: Failed parsing manifest.json line {d}: {s}\n", .{ line_idx, e });
+                return e;
+            }) catch {
+                debug("ERROR: Reached max number of entries in manifest ({d}). File bug to project to make this dynamic.\n", .{result.entries.len});
+                return errors.OutOfBounds;
+            };
         }
 
         // Expand variables
         if (maybe_env) |env| {
             for (result.entries.slice()) |*entry| {
-                try expandVariablesInBounded(entry.src.buffer.len, &entry.src, env);
-                try expandVariablesInBounded(entry.dst.buffer.len, &entry.dst, env);
+                expandVariablesInBounded(entry.src.buffer.len, &entry.src, env) catch |e| {
+                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ e, entry.source_line });
+                    return e;
+                };
+                expandVariablesInBounded(entry.dst.buffer.len, &entry.dst, env) catch |e| {
+                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ e, entry.source_line });
+                    return e;
+                };
             }
         }
 
@@ -104,7 +118,7 @@ pub const Manifest = struct {
 };
 
 ///! Scans the str for $(var)-patterns, and if found attempts to look 'var' up from env and if found there; replace it in str.
-fn expandVariablesInBounded(comptime capacity: usize, str: *std.BoundedArray(u8, capacity), env: *const std.BufMap) !void {
+fn expandVariablesInBounded(comptime capacity: usize, str: *std.BoundedArray(u8, capacity), env: *const std.BufMap) errors!void {
     var start_idx: usize = 0;
 
     while (std.mem.indexOf(u8, str.slice()[start_idx..], "$(")) |cand_start| {
@@ -113,13 +127,15 @@ fn expandVariablesInBounded(comptime capacity: usize, str: *std.BoundedArray(u8,
             var var_key = str.slice()[start_idx + cand_start + 2 .. start_idx + cand_start + cand_end];
 
             if (env.get(var_key)) |var_value| {
-                try str.replaceRange(start_idx + cand_start, cand_end + 1, var_value);
+                str.replaceRange(start_idx + cand_start, cand_end + 1, var_value) catch {
+                    return errors.OutOfBounds;
+                };
             }
 
             start_idx += cand_start + cand_end + 1;
 
             // Variable ends at end of string?
-            if(start_idx >= str.slice().len) break;
+            if (start_idx >= str.slice().len) break;
         }
     }
 }

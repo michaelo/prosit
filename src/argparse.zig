@@ -5,6 +5,8 @@ const debug = std.debug.print;
 
 const app = @import("app.zig");
 
+const errors = error{ OkExit, MissingRequiredArguments, NoSubcommand, InvalidSubcommand, OutOfBounds, UnknownArgument };
+
 pub const AppArgs = struct {
     subcommand: ?SubCommand = null,
     manifest_path: std.BoundedArray(u8, 1024) = std.BoundedArray(u8, 1024).fromSlice("prosit.manifest") catch unreachable,
@@ -16,16 +18,15 @@ pub const AppArgs = struct {
 
 pub const SubCommand = enum {
     update,
-    fn fromString(str: []const u8) !SubCommand {
-        return std.meta.stringToEnum(SubCommand, str) orelse return error.InvalidSubCommand;
+    fn fromString(str: []const u8) errors!SubCommand {
+        return std.meta.stringToEnum(SubCommand, str) orelse return errors.InvalidSubcommand;
     }
 };
 
 test "SubCommand" {
     try testing.expectEqual(SubCommand.update, try SubCommand.fromString("update"));
-    try testing.expectError(error.InvalidSubCommand, SubCommand.fromString("blah"));
+    try testing.expectError(errors.InvalidSubcommand, SubCommand.fromString("blah"));
 }
-
 
 pub fn printHelp(full: bool) void {
     debug(
@@ -81,11 +82,11 @@ fn argHasValue(arg: []const u8, full: []const u8, short: ?[]const u8) ?[]const u
     } else return null;
 }
 
-pub fn parseArgs(args: [][]const u8) !AppArgs {
+pub fn parseArgs(args: [][]const u8) errors!AppArgs {
     if (args.len < 1) {
         debug("ERROR: No arguments provided\n", .{});
         printHelp(false);
-        return error.NoArguments;
+        return errors.MissingRequiredArguments;
     }
 
     var result = AppArgs{};
@@ -96,17 +97,20 @@ pub fn parseArgs(args: [][]const u8) !AppArgs {
         // Flags
         if (argIs(arg, "--help", "-h")) {
             printHelp(true);
-            return error.OkExit;
+            return errors.OkExit;
         }
 
         if (argIs(arg, "--version", null)) {
             debug("{0s} v{1s}\n", .{ app.APP_NAME, app.APP_VERSION });
-            return error.OkExit;
+            return errors.OkExit;
         }
 
         if (argHasValue(arg, "--manifest", null)) |arg_value| {
             result.manifest_path.resize(0) catch unreachable;
-            try result.manifest_path.appendSlice(arg_value);
+            result.manifest_path.appendSlice(arg_value) catch {
+                debug("ERROR: --manifest argument is too long\n", .{});
+                return errors.OutOfBounds;
+            };
             continue;
         }
 
@@ -133,7 +137,7 @@ pub fn parseArgs(args: [][]const u8) !AppArgs {
         if (arg[0] == '-') {
             debug("ERROR: Unsupported argument '{s}'\n", .{arg});
             printHelp(false);
-            return error.InvalidArgument;
+            return errors.UnknownArgument;
         }
 
         // Check for anything that looks like a subcommand
@@ -147,6 +151,12 @@ pub fn parseArgs(args: [][]const u8) !AppArgs {
         }
 
         debug("WARNING: Unhandled argument: '{s}'\n", .{arg});
+    }
+
+    // TODO: Fail on missing subcommand?
+    if(result.subcommand == null) {
+        debug("ERROR: Subcommand expected\n", .{});
+        return errors.NoSubcommand;
     }
 
     return result;

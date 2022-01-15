@@ -9,7 +9,6 @@ const Manifest = @import("manifest.zig").Manifest;
 pub const ManifestEntry = @import("manifest.zig").ManifestEntry;
 pub const EntryType = @import("manifest.zig").EntryType;
 const Console = @import("console.zig").Console;
-
 const handlers = @import("handlers/handlers.zig");
 
 const SubCommand = argparse.SubCommand;
@@ -23,11 +22,10 @@ pub const APP_VERSION = blk: {
     }
 };
 
-
 // TODO: add allocator here as well?
 pub const Context = struct {
     console: Console,
-    exec: fn (std.mem.Allocator, *Context, []const []const u8) anyerror!usize,
+    exec: fn (std.mem.Allocator, *Context, []const []const u8) ExecErrors!usize,
     fn initDefault() Context {
         return .{
             .console = Console.initSimple(std.io.getStdOut().writer()),
@@ -36,8 +34,7 @@ pub const Context = struct {
     }
 };
 
-
-const errors = error{ ParseError, CouldNotReadManifest, ProcessError, MissingSubcommand };
+const errors = error{ ArgumentError, ManifestError, ProcessError, UnknownError };
 
 ///! If no error, user owns returned buf
 pub fn readFile(allocator: std.mem.Allocator, dir: std.fs.Dir, path: []const u8) ![]u8 {
@@ -72,11 +69,11 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) errors!void {
     // Read file
     var manifest_data = readFile(allocator, std.fs.cwd(), args.manifest_path.slice()) catch |e| {
         context.console.errorPrint("Could not read manifest: {s}\n", .{e});
-        return errors.CouldNotReadManifest;
+        return errors.ManifestError;
     };
     var manifest = Manifest.fromBuf(manifest_data, envMap) catch |e| {
         context.console.errorPrint("Could not parse manifest: {s}\n", .{e});
-        return errors.ParseError;
+        return errors.ManifestError;
     };
 
     // Handle according to subcommand
@@ -91,33 +88,25 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) errors!void {
             }
         },
     } else {
-        context.console.errorPrint("No subcommand provided.\n", .{});
-        return errors.MissingSubcommand;
+        return errors.ArgumentError;
     }
 }
 
 ///! CLI entry point
 ///! TBD: Support multiple output modes? E.g. stdout/err vs write to buffer which can be analyzed?
-pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) anyerror!void {
+pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) errors!void {
     var parsedArgs = argparse.parseArgs(args[0..]) catch |e| switch (e) {
         error.OkExit => {
             return;
         },
         else => {
-            return e;
+            debug("ERROR: Got error parsing arguments ({s}). Aborting.", .{e});
+            return errors.ArgumentError;
         },
     };
 
     // Do, then convert common errors to appropraite error messages
-    return main(&parsedArgs, envMap) catch |e| switch (e) {
-        errors.CouldNotReadManifest => {
-            debug("Could not read manifest-file: {s}\n", .{parsedArgs.manifest_path.slice()});
-            return error.ExecutionError;
-        },
-        else => {
-            return error.ExecutionError;
-        },
-    };
+    try main(&parsedArgs, envMap);
 }
 
 ///! Autosense buffer for type of line ending: Check buf for \r\n, and if found: return \r\n, otherwise \n
@@ -137,16 +126,24 @@ fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8, writer: std.fs.F
     }
 }
 
+
+const ExecErrors = error {
+    ExecError
+};
 ///! Chatty cmd-runner. Outputs verbatim what it does and what it gets
-pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) !usize {
+pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) ExecErrors!usize {
     var scrap: [2048]u8 = undefined;
     ctx.console.stdPrint("Executing {s} (cwd: {s})\n", .{ cmd, std.fs.cwd().realpath(".", scrap[0..]) });
 
-    var result = try std.ChildProcess.exec(.{
+    var result = std.ChildProcess.exec(.{
         .allocator = allocator,
         .argv = cmd[0..],
         .env_map = null,
-    });
+    }) catch |e| switch(e) {
+        else => {
+            return ExecErrors.ExecError;
+        }
+    };
     defer allocator.free(result.stderr);
     defer allocator.free(result.stdout);
 
@@ -157,14 +154,18 @@ pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cm
 }
 
 ///! Silent cmd-runner. Outputs nothing.
-pub fn runCmdSilent(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) !usize {
+pub fn runCmdSilent(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) ExecErrors!usize {
     _ = ctx;
 
-    var result = try std.ChildProcess.exec(.{
+    var result = std.ChildProcess.exec(.{
         .allocator = allocator,
         .argv = cmd[0..],
         .env_map = null,
-    });
+    }) catch |e| switch(e) {
+        else => {
+            return ExecErrors.ExecError;
+        }
+    };
     defer allocator.free(result.stderr);
     defer allocator.free(result.stdout);
 

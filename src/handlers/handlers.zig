@@ -3,8 +3,16 @@ const testing = std.testing;
 
 const app = @import("../app.zig");
 
+pub const errors = error {
+    SrcError,
+    DstError,
+    ExternalError,
+    UnknownError,
+    OutOfBounds,
+};
+
 ///! Interface definition for update-handlers
-const HandlerFunc = fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) anyerror!void;
+const HandlerFunc = fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) errors!void;
 
 ///! Array index by enum representing each update-handler
 const handlers = blk: {
@@ -19,6 +27,10 @@ const handlers = blk: {
 };
 
 ///! Convenience-function forwarding a manifest-entry to appropriate handler
-pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.ManifestEntry) anyerror!void {
+pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.ManifestEntry) errors!void {
     return handlers[@enumToInt(entry.entry_type)](allocator, ctx, entry);
+}
+
+test "smoke test" {
+    _ = handlers;
 }
