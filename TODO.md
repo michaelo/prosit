@@ -43,4 +43,4 @@
 
 We want to provide self-contained executables that can easily drop in a predefined set of supported systems/platforms.
 
-To achieve this we must statically link any dependencies. This includes the C++ stdlib.
+To achieve this we must statically link any dependencies.

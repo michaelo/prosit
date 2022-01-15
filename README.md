@@ -1,6 +1,6 @@
 # prosit
 
-ATT! The WIP is strong with this one, but it's running now. Tested building for macOS (clang) and Windows 10 (msbuild).
+ATT! The WIP is strong with this one, but it's running now. Tested building for macOS, Windows 10 and Ubuntu (via WSL1).
 
 The gist:
 
@@ -64,29 +64,22 @@ Future:
 
 ## Build and install
 
-It builds using the [Meson Build system](https://mesonbuild.com/).
+It builds using the [Zig build system](https://ziglang.org/learn/overview/#zig-build-system).
 
-Linux/macOS (using Ninja):
+Prerequisite: libcurl-dev - TBD: vendor it and deps directly?
 
-    meson build
-    cd build
-    ninja
-    ./prosit --help
+* Clone repo
+* Enter repo
+* Build: zig build
+* Install: zig build --prefix-exe-dir /usr/bin 
+* Test:
+  * zig build test
+  * zig build itest
 
-Windows (using MSBuild):
-    
-    (In Visual Studio Command Prompt)
-
-    meson build --backend=vs
-    cd build
-    msbuild prosit.sln
-    prosit --help
 
 ### Prerequisites
 
-* C++17 for clang/gcc. It uses "c++latest" for Visual C++ tested at 2020-01 (TODO: add tested version here).
-* libcurl must be installed and available on system (tested with pkg-config and vcpkg)
-
+* [zig](https://ziglang.org/) - development is currently done on a fairly recent 0.10.0-build
 
 ## Design goals
 
@@ -94,9 +87,8 @@ Windows (using MSBuild):
 * Get out of the way as fast as possible
 * Flexible with regards to supported data sources and their in-workspace residency
 * Support/encourage accuracy
-* Zero runtime dependencies
+* Minimal runtime dependencies (currently requiring e.g git and hg + libcurl)
 * Minimal compile-time dependencies
-
 
 ## Target platforms
 
@@ -105,7 +97,6 @@ Windows (using MSBuild):
 * x64 Linux
 * ARM64 Linux
 * ARM64 macOS
-
 
 ## FAQ
 
