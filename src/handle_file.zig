@@ -3,10 +3,8 @@ const std = @import("std");
 const ManifestEntry = @import("manifest.zig").ManifestEntry;
 const app = @import("app.zig");
 
-const debug = std.debug.print;
-
 ///!
-pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
+pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) !void {
     _ = allocator;
     // If dst ends with dir-separator: keep source-name
     // If dst-folder doesn't exist: create it
@@ -15,8 +13,7 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
 
     var src = entry.src.slice();
     var dst = entry.dst.slice();
-    // debug("  src: {s}\n", .{src});
-    // debug("  dst: {s}\n", .{dst});
+    ctx.console.debugPrint("Copying {s} to {s}\n", .{src, dst});
 
     // TBD: use stat() or similar to proper evaluate wether anything is file, folder etc?
     var src_folder_chunk: ?[]const u8 = null;
@@ -25,6 +22,7 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
     switch (src[src.len - 1]) {
         '/', '\\' => {
             // src is folder, currently not supported
+            ctx.console.errorPrint("Source '{s}' is a folder. Currently not supported\n", .{src});
             return error.SourceIsFolder;
         },
         else => {
@@ -59,16 +57,26 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
         },
     }
 
-    // debug("Copy from |{s}|, |{s}| to |{s}|, |{s}|\n", .{src_folder_chunk, src_file_chunk, dst_folder_chunk, dst_file_chunk});
+    // TODO: Verify source exists
+    // if(!fs::exists(e->src)) {
+    //     c->error("No such file: %s\n", e->src);
+    //     return App_Status_Code::Error;
+    // }
 
     // Copy src to dst
     var dest_dir: std.fs.Dir = blk: {
         if(dst_folder_chunk) |dst_subpath| {
-            break :blk try std.fs.cwd().makeOpenPath(dst_subpath, .{});
+            break :blk std.fs.cwd().makeOpenPath(dst_subpath, .{}) catch |e| {
+                ctx.console.errorPrint("Could not create destination directory ({s})\n", .{e});
+                return error.HandlerError;
+            };
         } else {
             break :blk std.fs.cwd();
         }
     };
 
-    try dest_dir.copyFile(src, dest_dir, dst_file_chunk.?, .{});
+    dest_dir.copyFile(src, dest_dir, dst_file_chunk.?, .{}) catch |e| {
+        ctx.console.errorPrint("Could not copy file ({s})\n", .{e});
+        // TODO: Return standardized handler-error
+    };
 }

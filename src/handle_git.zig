@@ -1,5 +1,4 @@
 const std = @import("std");
-const debug = std.debug.print;
 
 const app = @import("app.zig");
 const ManifestEntry = @import("manifest.zig").ManifestEntry;
@@ -19,7 +18,7 @@ fn exists(dir: std.fs.Dir, sub_path: []const u8) bool {
 }
 
 ///! git update handler
-pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
+pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) !void {
     var src = entry.src.slice();
     var dst = entry.dst.slice();
     var cwd_scrap: [2048]u8 = undefined;
@@ -36,17 +35,17 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
 
     // Dst does not exist: green field!
     if (!exists(std.fs.cwd(), dst)) {
-        debug("DEBUG: Destination doesn't exists. Cloning.\n", .{});
+        ctx.console.debugPrint("Destination doesn't exists. Cloning.\n", .{});
         var args: ArgList = &.{ "git", "clone", src, dst };
-        // TODO: Add silent-flag
-        if ((try app.runCmdAndPrintAllPrefixed(allocator, args)) != 0) {
-            debug("DEBUG: Got error executing git clone. See message(s) above.\n", .{});
+        // TODO: Add silent-flag? Or control this centrally for which exec is given instead?
+        if ((try ctx.exec(allocator, ctx, args)) != 0) {
+            ctx.console.debugPrint("Got error executing git clone. See message(s) above.\n", .{});
         }
     } else {
         // Dst exists. Is it a repo (update it), or something else (fail)?
         var dst_repo_check = try std.fmt.bufPrint(scrap[0..], "{s}/.git", .{dst});
         if (exists(std.fs.cwd(), dst_repo_check)) {
-            debug("DEBUG: Destination exists and seems like a repo. Let's pull.\n", .{});
+            ctx.console.debugPrint("Destination exists and seems like a repo. Let's pull.\n", .{});
 
             // Enter repo-dir, as git works on cwd
             try std.os.chdir(dst);
@@ -55,11 +54,11 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
             // Do git
             var args: ArgList = &.{ "git", "pull" };
             // TODO: Add silent-flag
-            if ((try app.runCmdAndPrintAllPrefixed(allocator, args)) != 0) {
-                debug("ERROR: Got error executing git pull. See message(s) above.", .{});
+            if ((try ctx.exec(allocator, ctx, args)) != 0) {
+                ctx.console.errorPrint("Got error executing git pull. See message(s) above.", .{});
             }
         } else {
-            debug("ERROR: Destination already exists, but is not a git-repo. Aborting.\n", .{});
+            ctx.console.errorPrint("Destination already exists, but is not a git-repo. Aborting.\n", .{});
 
             return error.DstExistsNotARepo;
         }
@@ -67,7 +66,7 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
 
     // Ref is specified: check it out
     if (maybe_ref) |ref| {
-        debug("DEBUG: Checking out ref {s}\n", .{ref});
+        ctx.console.debugPrint("Checking out ref {s}\n", .{ref});
 
         // Enter repo-dor, as git works on cwd
         try std.os.chdir(dst);
@@ -76,8 +75,8 @@ pub fn update(allocator: std.mem.Allocator, entry: *ManifestEntry) !void {
         // Do git
         var args: ArgList = &.{ "git", "checkout", ref };
         // TODO: Add silent-flag
-        if ((try app.runCmdAndPrintAllPrefixed(allocator, args)) != 0) {
-            debug("ERROR: Got error executing git checkout. See message(s) above.\n", .{});
+        if ((try ctx.exec(allocator, ctx, args)) != 0) {
+            ctx.console.errorPrint("Got error executing git checkout. See message(s) above.\n", .{});
         }
     }
 }

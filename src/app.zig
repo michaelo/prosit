@@ -7,6 +7,7 @@ pub const utils = @import("utils.zig");
 const Manifest = @import("manifest.zig").Manifest;
 const ManifestEntry = @import("manifest.zig").ManifestEntry;
 const EntryType = @import("manifest.zig").EntryType;
+const Console = @import("console.zig").Console;
 
 pub const APP_NAME = "prosit";
 pub const APP_VERSION = blk: {
@@ -20,7 +21,11 @@ pub const APP_VERSION = blk: {
 ///! Interface definition for update-handlers
 ///! TBD: Pass in a context with terminal-outputters + exec-handler?
 ///! TBD: Include Console from sapt?
-const HandlerFunc = fn(std.mem.Allocator, *ManifestEntry)anyerror!void;
+
+// TODO: add allocator here as well?
+pub const Context = struct { console: Console, exec: fn (std.mem.Allocator, *Context, []const []const u8) anyerror!usize };
+
+const HandlerFunc = fn (std.mem.Allocator, *Context, *ManifestEntry) anyerror!void;
 
 ///! Array index by enum representing each update-handler
 const handlers = blk: {
@@ -35,11 +40,11 @@ const handlers = blk: {
 };
 
 ///! Convenience-function forwarding a manifest-entry to appropriate handler
-fn update(allocator: std.mem.Allocator, entry:*ManifestEntry) anyerror!void {
-    return handlers[@enumToInt(entry.entry_type)](allocator, entry);
+fn update(allocator: std.mem.Allocator, ctx: *Context, entry: *ManifestEntry) anyerror!void {
+    return handlers[@enumToInt(entry.entry_type)](allocator, ctx, entry);
 }
 
-const errors = error{ ParseError, CouldNotReadManifest, ProcessError };
+const errors = error{ ParseError, CouldNotReadManifest, ProcessError, MissingSubcommand };
 
 const SubCommand = enum {
     update,
@@ -127,7 +132,6 @@ fn parseArgs(args: [][]const u8) !AppArgs {
 
     // Strategy (for later):
     // Scan args for valid subcommand, any args before: global args, any args after: subcommand-specific?
-
     for (args[0..]) |arg| {
         // Flags
         if (argIs(arg, "--help", "-h")) {
@@ -225,34 +229,49 @@ pub fn main(args: *AppArgs, envMap: *const std.BufMap) errors!void {
     defer aa.deinit();
     var allocator = aa.allocator();
 
+    var stdout = std.io.getStdOut().writer();
+    var stderr = std.io.getStdErr().writer();
+
+    var context = Context{
+        .console = Console.init(.{
+            .std_writer = if (!args.silent) stdout else null,
+            .debug_writer = if (args.verbose) stdout else null,
+            .verbose_writer = if (!args.verbose) null else stdout,
+            .error_writer = if (!args.silent) stderr else null,
+            .colors = .on,
+        }),
+        .exec = if (args.silent) runCmdSilent else runCmdAndPrintAllPrefixed,
+    };
+
     // Parse manifest
     // Read file
     var manifest_data = readFile(allocator, std.fs.cwd(), args.manifest_path.slice()) catch |e| {
-        debug("ERROR reading manifest: {s}\n", .{e});
+        context.console.errorPrint("Could not read manifest: {s}\n", .{e});
         return errors.CouldNotReadManifest;
     };
     var manifest = Manifest.fromBuf(manifest_data, envMap) catch |e| {
-        debug("ERROR parsing manifest: {s}\n", .{e});
+        context.console.errorPrint("Could not parse manifest: {s}\n", .{e});
         return errors.ParseError;
     };
 
     // Handle according to subcommand
     if (args.subcommand) |subcommand| switch (subcommand) {
         SubCommand.update => {
-            for(manifest.entries.slice()) |*entry| {
-                debug("DEBUG: Processing entry @ line: {d}: {s} {s} > {s}\n", .{entry.source_line, entry.entry_type, entry.src.constSlice(), entry.dst.constSlice()});
-                update(allocator, entry) catch {
-                    debug("ERROR: Update failed for entry at line: {d}\n", .{entry.source_line});
+            for (manifest.entries.slice()) |*entry| {
+                context.console.stdPrint("Processing manifest entry @ line {d}: {s} {s} > {s}\n", .{ entry.source_line, @tagName(entry.entry_type), entry.src.constSlice(), entry.dst.constSlice() });
+                update(allocator, &context, entry) catch {
+                    context.console.errorPrint("Update failed for entry at line: {d}\n", .{entry.source_line});
                     return errors.ProcessError;
                 };
             }
         },
     } else {
-        debug("ERROR: No subcommand provided.\n", .{});
+        context.console.errorPrint("No subcommand provided.\n", .{});
+        return errors.MissingSubcommand;
     }
 }
 
-///! CLI-wrapper: TODO: Accept env-buffer
+///! CLI entry point
 ///! TBD: Support multiple output modes? E.g. stdout/err vs write to buffer which can be analyzed?
 pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) anyerror!void {
     var parsedArgs = parseArgs(args[0..]) catch |e| switch (e) {
@@ -264,42 +283,16 @@ pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) anyerror!void {
         },
     };
 
-    // var env_it = envMap.iterator();
-    // while (env_it.next()) |env| {
-    //     debug("env: {s}={s}\n", .{ env.key_ptr.*, env.value_ptr.* });
-    // }
-
     // Do, then convert common errors to appropraite error messages
     return main(&parsedArgs, envMap) catch |e| switch (e) {
         errors.CouldNotReadManifest => {
             debug("Could not read manifest-file: {s}\n", .{parsedArgs.manifest_path.slice()});
+            return error.ExecutionError;
         },
         else => {
-            debug("DEBUG: Unhandled error: {s}\n", .{e});
+            return error.ExecutionError;
         },
     };
-}
-
-// TODO: Return status Ok/Error based on return code?
-fn runCmdAndPrintAll(allocator: std.mem.Allocator, cmd: []const u8) !void {
-    var args = [_][]const u8{cmd};
-
-    var result = try std.ChildProcess.exec(.{
-        .allocator = allocator,
-        .argv = args[0..],
-        .env_map = null,
-    });
-    defer allocator.free(result.stderr);
-    defer allocator.free(result.stdout);
-
-    // TBD: prefix all lines?
-    if (result.stdout.len > 0) {
-        debug("stdout: {s}\n", .{result.stdout});
-    }
-
-    if (result.stderr.len > 0) {
-        debug("stderr: {s}\n", .{result.stderr});
-    }
 }
 
 /// Autosense buffer for type of line ending: Check buf for \r\n, and if found: return \r\n, otherwise \n
@@ -308,18 +301,19 @@ fn getLineEnding(buf: []const u8) []const u8 {
     return "\n";
 }
 
-fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8) void {
-    if (buf.len == 0) return;
+fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8, writer: std.fs.File.Writer) void {
+    if (std.mem.trim(u8, buf, " \t\n").len == 0) return;
 
     var line_end = getLineEnding(buf);
     var line_it = std.mem.split(u8, buf, line_end);
     while (line_it.next()) |line| {
-        debug("{s} {s}{s}", .{ prefix, line, line_end });
+        writer.print("{s}{s}{s}", .{ prefix, line, line_end }) catch {};
     }
 }
 
-pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, cmd: []const []const u8) !usize {
-    debug("DEBUG: executing {s}\n", .{cmd});
+pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) !usize {
+    var scrap: [2048]u8 = undefined;
+    ctx.console.stdPrint("Executing {s} (cwd: {s})\n", .{ cmd, std.fs.cwd().realpath(".", scrap[0..]) });
 
     var result = try std.ChildProcess.exec(.{
         .allocator = allocator,
@@ -329,9 +323,22 @@ pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, cmd: []const []co
     defer allocator.free(result.stderr);
     defer allocator.free(result.stdout);
 
-    // TBD: prefix all lines?
-    printAllLinesWithPrefix(result.stdout, "stdout: ");
-    printAllLinesWithPrefix(result.stderr, "stderr: ");
+    printAllLinesWithPrefix(result.stdout, "stdout: ", std.io.getStdOut().writer());
+    printAllLinesWithPrefix(result.stderr, "stderr: ", std.io.getStdErr().writer());
+
+    return result.term.Exited;
+}
+
+pub fn runCmdSilent(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) !usize {
+    _ = ctx;
+
+    var result = try std.ChildProcess.exec(.{
+        .allocator = allocator,
+        .argv = cmd[0..],
+        .env_map = null,
+    });
+    defer allocator.free(result.stderr);
+    defer allocator.free(result.stdout);
 
     return result.term.Exited;
 }
@@ -345,8 +352,7 @@ pub fn fields(cmd: anytype) [][]const u8 {
     }
     const fields_info = std.meta.fields(ArgsType);
 
-    comptime
-    {
+    comptime {
         var results: [fields_info.len][]const u8 = undefined;
         for (fields_info) |field_info, i| {
             results[i] = @field(cmd, field_info.name);
