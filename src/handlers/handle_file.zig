@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const ManifestEntry = @import("manifest.zig").ManifestEntry;
-const app = @import("app.zig");
+const app = @import("../app.zig");
+const ManifestEntry = app.ManifestEntry;
 
 ///!
 pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) !void {

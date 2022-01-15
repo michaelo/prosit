@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const app = @import("app.zig");
-const ManifestEntry = @import("manifest.zig").ManifestEntry;
+const app = @import("../app.zig");
+const ManifestEntry = app.ManifestEntry;
 const utils = app.utils;
 
 const ArgList = []const []const u8;
