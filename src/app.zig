@@ -37,6 +37,81 @@ pub const Context = struct {
     }
 };
 
+///! Evalutes if subpath is inside dir (naively). Does not require subpath to actually exist.
+fn subpathIsInDir(dir: []const u8, subpath: []const u8) bool {
+    if (subpath.len < 2) return false;
+    // TBD: This can be considered redundant now since we have the more specific check below, comparing resolved paths
+    switch (subpath[0]) {
+        '/', '\\' => return false, // Absolute paths
+        '.' => {
+            if (subpath[1] == '.') return false; // Navigate backwards
+        },
+        'a'...'z', 'A'...'Z' => {
+            if (subpath[1] == ':') return false; // Windows drive
+        },
+        else => {}
+    }
+
+    // Attempt to resolve the subpath relative to dir
+    var scrap_dir : [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var scrap_subpath : [std.fs.MAX_PATH_BYTES]u8 = undefined;
+
+    // Assumes dir actually exists
+    var dir_path = std.fs.realpath(dir[0..], scrap_dir[0..]) catch return false;
+    var subpath_fullpath = std.fmt.bufPrint(scrap_subpath[0..], "{s}/{s}", .{std.mem.trimRight(u8, dir_path, "\\/"), subpath}) catch return false; // TODO!
+    
+    // Weakly resolve subpath relative to dir
+    std.mem.replaceScalar(u8, dir_path, '\\', '/'); // normalize
+    std.mem.replaceScalar(u8, subpath_fullpath, '\\', '/'); // normalize
+    
+    while(std.mem.indexOf(u8, subpath_fullpath, "/..")) |idx| {
+        // Replace until first / to the left
+        if(std.mem.lastIndexOfScalar(u8, subpath_fullpath[0..idx], '/')) |sep_idx| {
+            std.mem.copy(u8, subpath_fullpath[sep_idx..], subpath_fullpath[idx+3..]);
+            subpath_fullpath = subpath_fullpath[0..subpath_fullpath.len-(idx-sep_idx+3)];
+        } else {
+            // We've ..'ed, but there's no preceeding dir
+            return false;
+        }
+    }
+    
+    if(!std.mem.startsWith(u8, subpath_fullpath, dir_path)) return false;
+
+    return true;
+}
+
+
+test "pathIsRelativeInside" {
+    try testing.expect(subpathIsInDir("." , "./ok"));
+    try testing.expect(subpathIsInDir("." , "ok"));
+    try testing.expect(!subpathIsInDir(".", "/not/ok"));
+    try testing.expect(!subpathIsInDir(".", "../not/ok"));
+    try testing.expect(!subpathIsInDir(".", "c:\\not\\ok"));
+    try testing.expect(!subpathIsInDir(".", "e:\\not\\ok"));
+    try testing.expect(!subpathIsInDir(".", "\\not\\ok"));
+    try testing.expect(!subpathIsInDir(".", "trying/../../to/fool/you"));
+}
+
+///! Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
+fn precheckManifest(ctx: *Context, manifest: *Manifest, args: struct { require_in_ws: bool = true}) AppErrors!void {
+    var all_ok: bool = true;
+
+    for(manifest.entries.constSlice()) |entry| {
+        if(!subpathIsInDir(".", entry.dst.constSlice())) {
+            if(args.require_in_ws) {
+                ctx.console.errorPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{entry.source_line,".", entry.dst.constSlice()});
+                all_ok = false;
+            } else {
+                ctx.console.debugPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{entry.source_line,".", entry.dst.constSlice()});
+            }
+        }
+    }
+
+    if(!all_ok) {
+        return AppErrors.ManifestError;
+    }
+}
+
 ///! Proper core entry point of tool
 ///! TODO: Consider wrapping tool as a struct if more context is needed
 pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) AppErrors!void {
@@ -51,12 +126,16 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) AppErrors!void {
         .console = Console.init(.{
             .std_writer = if (!args.silent) stdout else null,
             .debug_writer = if (args.verbose) stdout else null,
-            .verbose_writer = if (!args.verbose) null else stdout,
+            .verbose_writer = if (args.verbose) stdout else null,
             .error_writer = if (!args.silent) stderr else null,
             .colors = .on,
         }),
         .exec = if (args.silent) io.runCmdSilent else io.runCmdAndPrintAllPrefixed,
     };
+
+    var scrap: [2048]u8 = undefined;
+    context.console.stdPrint("Workspace: {s}\n", .{std.fs.cwd().realpath(".", scrap[0..])});
+    context.console.stdPrint("Manifest: {s}\n", .{args.manifest_path.slice()});
 
     // Parse manifest
     // Read file
@@ -68,6 +147,8 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) AppErrors!void {
         context.console.errorPrint("Could not parse manifest: {s}\n", .{e});
         return AppErrors.ManifestError;
     };
+
+    try precheckManifest(&context, &manifest, .{.require_in_ws = !args.allow_out_of_tree});
 
     // Handle according to subcommand
     if (args.subcommand) |subcommand| switch (subcommand) {

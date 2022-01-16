@@ -56,7 +56,6 @@ pub const Manifest = struct {
         return self.entries.constSlice();
     }
 
-    pub fn precheck() bool {}
 
     fn parseLine(line_idx: usize, line: []const u8) ManifestErrors!ManifestEntry {
         // format: <type>: <source> > <dest>[flags]

@@ -58,10 +58,8 @@ pub const TestHelper = struct {
 
     tmp_dir: std.testing.TmpDir,
     original_cwd: std.BoundedArray(u8, 2048),
-    // original_cwd: std.fs.Dir,
     env: std.BufMap,
 
-    // TODO: Retain context between calls
     pub fn init() !Self {
         var testfiles_path_buf: [2048]u8 = undefined;
 
@@ -78,7 +76,6 @@ pub const TestHelper = struct {
         // Setup tmp-structure in which to populate based on manifest
 
         // Set newly created tmp worskapce dir as cwd
-        // var prev_cwd = std.fs.cwd();
         var scrap: [2048]u8 = undefined;
         var orirignal_cwd = try std.fs.cwd().realpath(".", scrap[0..]);
 
@@ -103,11 +100,7 @@ pub const TestHelper = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        // var scrap: [1024]u8 = undefined;
-        // var original_path = self.original_cwd.realpath(".", scrap[0..]) catch unreachable;
-        debug("going back to: {s}\n", .{self.original_cwd.slice()});
         std.os.chdir(self.original_cwd.slice()) catch unreachable;
-        // utils.chdir(self.original_cwd) catch {};
         self.env.deinit();
         self.tmp_dir.cleanup();
     }
