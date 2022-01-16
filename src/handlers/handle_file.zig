@@ -2,11 +2,10 @@ const std = @import("std");
 
 const app = @import("../app.zig");
 const ManifestEntry = app.ManifestEntry;
-
-const errors = @import("handlers.zig").errors;
+const HandlersErrors = @import("handlers.zig").HandlersErrors;
 
 ///!
-pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) errors!void {
+pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) HandlersErrors!void {
     _ = allocator;
     // If dst ends with dir-separator: keep source-name
     // If dst-folder doesn't exist: create it
@@ -25,7 +24,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
         '/', '\\' => {
             // src is folder, currently not supported
             ctx.console.errorPrint("Source '{s}' is a folder. Currently not supported\n", .{src});
-            return errors.SrcError;
+            return HandlersErrors.SrcError;
         },
         else => {
             // src is file, we're a'good!
@@ -70,7 +69,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
         if(dst_folder_chunk) |dst_subpath| {
             break :blk std.fs.cwd().makeOpenPath(dst_subpath, .{}) catch |e| {
                 ctx.console.errorPrint("Could not create destination directory ({s})\n", .{e});
-                return errors.DstError;
+                return HandlersErrors.DstError;
             };
         } else {
             break :blk std.fs.cwd();
@@ -79,6 +78,6 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
 
     dest_dir.copyFile(src, dest_dir, dst_file_chunk.?, .{}) catch |e| {
         ctx.console.errorPrint("Could not copy file ({s})\n", .{e});
-        return errors.UnknownError;
+        return HandlersErrors.UnknownError;
     };
 }

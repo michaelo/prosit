@@ -3,7 +3,7 @@ const testing = std.testing;
 
 const app = @import("../app.zig");
 
-pub const errors = error {
+pub const HandlersErrors = error {
     SrcError,
     DstError,
     ExternalError,
@@ -12,7 +12,7 @@ pub const errors = error {
 };
 
 ///! Interface definition for update-handlers
-const HandlerFunc = fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) errors!void;
+const HandlerFunc = fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) HandlersErrors!void;
 
 ///! Array index by enum representing each update-handler
 const handlers = blk: {
@@ -27,7 +27,7 @@ const handlers = blk: {
 };
 
 ///! Convenience-function forwarding a manifest-entry to appropriate handler
-pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.ManifestEntry) errors!void {
+pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.ManifestEntry) HandlersErrors!void {
     return handlers[@enumToInt(entry.entry_type)](allocator, ctx, entry);
 }
 
