@@ -34,3 +34,13 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.Manif
 test "smoke test" {
     _ = handlers;
 }
+
+pub fn fileOrFolderExists(dir: std.fs.Dir, sub_path: []const u8) bool {
+    _ = dir.statFile(sub_path) catch {
+        var tmp_dir = dir.openDir(sub_path, .{}) catch {
+            return false;
+        };
+        defer tmp_dir.close();
+    };
+    return true;
+}

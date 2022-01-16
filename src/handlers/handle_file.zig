@@ -3,6 +3,7 @@ const std = @import("std");
 const app = @import("../app.zig");
 const ManifestEntry = app.ManifestEntry;
 const HandlersErrors = @import("handlers.zig").HandlersErrors;
+const fileOrFolderExists = @import("handlers.zig").fileOrFolderExists;
 
 ///!
 pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestEntry) HandlersErrors!void {
@@ -15,6 +16,11 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
     var src = entry.src.slice();
     var dst = entry.dst.slice();
     ctx.console.debugPrint("Copying {s} to {s}\n", .{src, dst});
+
+    if(!fileOrFolderExists(std.fs.cwd(), src)) {
+        ctx.console.errorPrint("Source '{s}' does not exist\n", .{src});
+        return HandlersErrors.SrcError;
+    }
 
     // TBD: use stat() or similar to proper evaluate wether anything is file, folder etc?
     var src_folder_chunk: ?[]const u8 = null;

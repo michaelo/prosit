@@ -72,9 +72,7 @@ Prerequisite: libcurl-dev - TBD: vendor it and deps directly?
 * Enter repo
 * Build: zig build
 * Install: zig build --prefix-exe-dir /usr/bin 
-* Test:
-  * zig build test
-  * zig build itest
+* Test: zig build itest
 
 
 ### Prerequisites
