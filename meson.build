@@ -4,6 +4,7 @@ project('prosit', 'cpp',
     'warning_level=3',
     'cpp_std=c++17',
     ])
+add_global_arguments('-DCURL_STATICLIB', language: 'cpp')
 
 subdir('src') # provides src_lib
 

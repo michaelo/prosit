@@ -118,7 +118,7 @@ void test_teardown(Test_Context *context)
     // Set cwd back to initial dir
     fs::current_path(context->pre_test_cwd);
     // Delete tmp-folder
-    if(fs::remove_all(context->workspace_path, error_code) == -1)
+    if(fs::remove_all(context->workspace_path, error_code) == (uintmax_t)-1)
     {
         // TODO: This has been observed for git-related tests under Windows 10. This will eventually cause the need for manual cleanup in temp-folder
         fprintf(stderr, "ERROR: Could not remove temporary files at %s (%s)\n", context->workspace_path, error_code.message().c_str());

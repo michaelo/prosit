@@ -38,19 +38,19 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
     defer(fclose(file));
     defer(remove(tmp_name));
 
-    curl_easy_setopt(ch, CURLOPT_VERBOSE, 0L);
-    curl_easy_setopt(ch, CURLOPT_HEADER, 0L);
-    curl_easy_setopt(ch, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(ch, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(ch, CURLOPT_WRITEFUNCTION, writefunction);
-    curl_easy_setopt(ch, CURLOPT_WRITEDATA, file);
-    curl_easy_setopt(ch, CURLOPT_HEADERFUNCTION, nullptr);
-    curl_easy_setopt(ch, CURLOPT_HEADERDATA, nullptr);
-    curl_easy_setopt(ch, CURLOPT_SSLCERTTYPE, "PEM");
-    curl_easy_setopt(ch, CURLOPT_SSL_VERIFYPEER, 1L);
-
     // URL to retrieve
     curl_easy_setopt(ch, CURLOPT_URL, e->src);
+
+    curl_easy_setopt(ch, CURLOPT_VERBOSE, 0L);
+    curl_easy_setopt(ch, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(ch, CURLOPT_WRITEFUNCTION, writefunction);
+
+    // curl_easy_setopt(ch, CURLOPT_HEADER, 0L);
+    // curl_easy_setopt(ch, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(ch, CURLOPT_WRITEDATA, file);
+    // curl_easy_setopt(ch, CURLOPT_SSL_VERIFYPEER, 0L);
+    // curl_easy_setopt(ch, CURLOPT_SSL_VERIFYHOST, 0L);
+
 
     // Got auth?
     char username[128];
@@ -65,8 +65,8 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
     // Turn off the default CA locations, otherwise libcurl will load CA
     // certificates from the locations that were detected/specified at
     // build-time
-    curl_easy_setopt(ch, CURLOPT_CAINFO, NULL);
-    curl_easy_setopt(ch, CURLOPT_CAPATH, NULL);
+    // curl_easy_setopt(ch, CURLOPT_CAINFO, NULL);
+    // curl_easy_setopt(ch, CURLOPT_CAPATH, NULL);
 
     // Execute
     rv = curl_easy_perform(ch);
@@ -87,9 +87,10 @@ App_Status_Code handle_https(Context *c, Manifest_Entry *e)
             std::error_code error_code;
             fs::path dst_folder = fs::weakly_canonical(e->dst, error_code).parent_path();
 
+            // TODO: Denne håndteringen er ikke god nok. Må potensielt se på absolute, evt appende dst på current_path før test.
             if(dst_folder.string().length() > 0 && !fs::exists(dst_folder, error_code) && !fs::create_directories(dst_folder, error_code))
             {
-                c->error("Could not download file: %s. Could not create destination directory\n", e->src);
+                c->error("Could not download file: %s. Could not create destination directory (%s)\n", e->src, dst_folder.u8string().c_str());
                 return App_Status_Code::Error;
             }
 
