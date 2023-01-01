@@ -12,7 +12,7 @@ pub const HandlersErrors = error {
 };
 
 ///! Interface definition for update-handlers
-const HandlerFunc = fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) HandlersErrors!void;
+const HandlerFunc = *const fn (std.mem.Allocator, *app.Context, *app.ManifestEntry) HandlersErrors!void;
 
 ///! Array index by enum representing each update-handler
 const handlers = blk: {

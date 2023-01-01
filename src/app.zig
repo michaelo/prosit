@@ -28,7 +28,7 @@ pub const APP_VERSION = blk: {
 // TODO: add allocator here as well?
 pub const Context = struct {
     console: Console,
-    exec: fn (std.mem.Allocator, *Context, []const []const u8) io.ExecErrors!usize,
+    exec: io.CmdRunnerType,
     fn initDefault() Context {
         return .{
             .console = Console.initSimple(std.io.getStdOut().writer()),
@@ -134,17 +134,17 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) AppErrors!void {
     };
 
     var scrap: [2048]u8 = undefined;
-    context.console.stdPrint("Workspace: {s}\n", .{std.fs.cwd().realpath(".", scrap[0..])});
+    context.console.stdPrint("Workspace: {s}\n", .{std.fs.cwd().realpath(".", scrap[0..]) catch "UNKNOWN"});
     context.console.stdPrint("Manifest: {s}\n", .{args.manifest_path.slice()});
 
     // Parse manifest
     // Read file
     var manifest_data = io.readFile(allocator, std.fs.cwd(), args.manifest_path.slice()) catch |e| {
-        context.console.errorPrint("Could not read manifest: {s}\n", .{e});
+        context.console.errorPrint("Could not read manifest: {s}\n", .{@errorName(e)});
         return AppErrors.ManifestError;
     };
     var manifest = Manifest.fromBuf(manifest_data, envMap) catch |e| {
-        context.console.errorPrint("Could not parse manifest: {s}\n", .{e});
+        context.console.errorPrint("Could not parse manifest: {s}\n", .{@errorName(e)});
         return AppErrors.ManifestError;
     };
 
@@ -179,7 +179,7 @@ pub fn cliMain(args: [][]const u8, envMap: *std.BufMap) AppErrors!void {
             return AppErrors.ArgumentError;
         },
         else => {
-            debug("ERROR: Got error parsing arguments ({s}). Aborting.", .{e});
+            debug("ERROR: Got error parsing arguments ({s}). Aborting.", .{@errorName(e)});
             return AppErrors.ArgumentError;
         },
     };

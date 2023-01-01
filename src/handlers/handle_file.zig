@@ -74,7 +74,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
     var dest_dir: std.fs.Dir = blk: {
         if(dst_folder_chunk) |dst_subpath| {
             break :blk std.fs.cwd().makeOpenPath(dst_subpath, .{}) catch |e| {
-                ctx.console.errorPrint("Could not create destination directory ({s})\n", .{e});
+                ctx.console.errorPrint("Could not create destination directory ({s})\n", .{@errorName(e)});
                 return HandlersErrors.DstError;
             };
         } else {
@@ -83,7 +83,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
     };
 
     dest_dir.copyFile(src, dest_dir, dst_file_chunk.?, .{}) catch |e| {
-        ctx.console.errorPrint("Could not copy file ({s})\n", .{e});
+        ctx.console.errorPrint("Could not copy file ({s})\n", .{@errorName(e)});
         return HandlersErrors.UnknownError;
     };
 }

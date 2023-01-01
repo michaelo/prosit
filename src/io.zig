@@ -1,5 +1,5 @@
 const std = @import("std");
-const Context = @import("app.zig").Context;
+const Console = @import("console.zig").Console;
 
 ///! Autosense buffer for type of line ending: Check buf for \r\n, and if found: return \r\n, otherwise \n
 pub fn getLineEnding(buf: []const u8) []const u8 {
@@ -21,17 +21,20 @@ fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8, writer: std.fs.F
 pub const ExecErrors = error {
     ExecError
 };
+
+pub const CmdRunnerType = *const fn (allocator: std.mem.Allocator, console: *Console, cmd: []const []const u8) ExecErrors!usize;
+
 ///! Chatty cmd-runner. Outputs verbatim what it does and what it gets
-pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) ExecErrors!usize {
+pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, console: *Console, cmd: []const []const u8) ExecErrors!usize {
     var scrap: [2048]u8 = undefined;
-    ctx.console.stdPrint("Executing {s} (cwd: {s})\n", .{ cmd, std.fs.cwd().realpath(".", scrap[0..]) });
+    console.stdPrint("Executing {s} (cwd: {s})\n", .{ cmd, std.fs.cwd().realpath(".", scrap[0..]) catch "UNKNOWN" });
 
     var result = std.ChildProcess.exec(.{
         .allocator = allocator,
         .argv = cmd[0..],
         .env_map = null,
     }) catch |e| {
-        ctx.console.errorPrint("Got error executing command ({s})\n", .{e});
+        console.errorPrint("Got error executing command ({s})\n", .{@errorName(e)});
         return ExecErrors.ExecError;
     };
     defer allocator.free(result.stderr);
@@ -44,8 +47,8 @@ pub fn runCmdAndPrintAllPrefixed(allocator: std.mem.Allocator, ctx: *Context, cm
 }
 
 ///! Silent cmd-runner. Outputs nothing.
-pub fn runCmdSilent(allocator: std.mem.Allocator, ctx: *Context, cmd: []const []const u8) ExecErrors!usize {
-    _ = ctx;
+pub fn runCmdSilent(allocator: std.mem.Allocator, console: *Console, cmd: []const []const u8) ExecErrors!usize {
+    _ = console;
 
     var result = std.ChildProcess.exec(.{
         .allocator = allocator,
@@ -81,12 +84,12 @@ pub fn fields(cmd: anytype) [][]const u8 {
 
 test "runCmd" {
     // var arg = "--help";
-    _ = try runCmdAndPrintAllPrefixed(std.testing.allocator, &Context.initDefault(), fields(.{ "git", "--help" }));
+    _ = try runCmdAndPrintAllPrefixed(std.testing.allocator, &Console.initSimple(std.io.getStdOut().writer()), fields(.{ "git", "--help" }));
 }
 
 ///! If no error, user owns returned buf
 pub fn readFile(allocator: std.mem.Allocator, dir: std.fs.Dir, path: []const u8) ![]u8 {
-    var file = try dir.openFile(path, .{ .read = true });
+    var file = try dir.openFile(path, .{ .mode = .read_only });
     defer file.close();
 
     return try file.readToEndAlloc(allocator, 10 * 1024 * 1024);

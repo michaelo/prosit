@@ -13,7 +13,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
     var dst = entry.dst.slice();
     var cwd_scrap: [2048]u8 = undefined;
     const cwd = std.fs.cwd().realpath(".", cwd_scrap[0..]) catch |e| {
-        ctx.console.errorPrint("Could not resolve cwd ({s})\n", .{e});
+        ctx.console.errorPrint("Could not resolve cwd ({s})\n", .{@errorName(e)});
         return HandlersErrors.UnknownError;
     };
 
@@ -30,7 +30,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
     if (!fileOrFolderExists(std.fs.cwd(), dst)) {
         ctx.console.debugPrint("Destination doesn't exists. Cloning.\n", .{});
         var args: ArgList = &.{ "git", "clone", src, dst };
-        if ((ctx.exec(allocator, ctx, args) catch {
+        if ((ctx.exec(allocator, &ctx.console, args) catch {
             ctx.console.errorPrint("Unknown error when calling git\n", .{});
             return HandlersErrors.UnknownError;
         }) != 0) {
@@ -46,16 +46,16 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
 
             // Enter repo-dir, as git works on cwd
             std.os.chdir(dst) catch |e| {
-                ctx.console.errorPrint("Could not change cwd to '{s}'' ({s})\n", .{ dst, e });
+                ctx.console.errorPrint("Could not change cwd to '{s}'' ({s})\n", .{ dst, @errorName(e) });
                 return HandlersErrors.UnknownError;
             };
             defer std.os.chdir(cwd) catch unreachable;
 
             // Do git
             var args: ArgList = &.{ "git", "pull" };
-            if ((ctx.exec(allocator, ctx, args) catch {
+            if ((ctx.exec(allocator, &ctx.console, args) catch {
                 ctx.console.errorPrint("Unknown error when calling git\n", .{});
-                return HandlersErrors.UnknownError;
+                return HandlersErrors.UnknownError; 
             }) != 0) {
                 ctx.console.errorPrint("Got error executing git pull. See message(s) above.", .{});
             }
@@ -72,14 +72,14 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
 
         // Enter repo-dor, as git works on cwd
         std.os.chdir(dst) catch |e| {
-            ctx.console.errorPrint("Could not change cwd to '{s}'' ({s})\n", .{ dst, e });
+            ctx.console.errorPrint("Could not change cwd to '{s}'' ({s})\n", .{ dst, @errorName(e) });
             return HandlersErrors.UnknownError;
         };
         defer std.os.chdir(cwd) catch unreachable;
 
         // Do git
         var args: ArgList = &.{ "git", "checkout", ref };
-        if ((ctx.exec(allocator, ctx, args) catch {
+        if ((ctx.exec(allocator, &ctx.console, args) catch {
             ctx.console.errorPrint("Unknown error when calling git\n", .{});
             return HandlersErrors.UnknownError;
         }) != 0) {

@@ -42,7 +42,13 @@ pub const ManifestEntry = struct {
 // TODO: Can make fromBuf a standalone function which simply returns a BoundedArray.
 pub const Manifest = struct {
     const Self = @This();
-    entries: std.BoundedArray(ManifestEntry, 128) = std.BoundedArray(ManifestEntry, 128).init(0) catch unreachable,
+    entries: std.BoundedArray(ManifestEntry, 128),
+
+    fn init() Self {
+        return .{
+            .entries = std.BoundedArray(ManifestEntry, 128).init(0) catch unreachable,
+        };
+    }
 
     pub fn len(self: *Self) usize {
         return self.entries.constSlice().len;
@@ -76,8 +82,8 @@ pub const Manifest = struct {
         return error.InvalidSyntax;
     }
 
-    pub fn fromBuf(buf: []const u8, maybe_env: ?*const std.BufMap) ManifestErrors!Manifest {
-        var result = Manifest{};
+    pub fn fromBuf(buf: []const u8, maybe_envs: ?*const std.BufMap) ManifestErrors!Manifest {
+        var manifest = Manifest.init();
 
         var line_it = std.mem.tokenize(u8, buf, getLineEnding(buf));
         var line_idx: usize = 1;
@@ -89,30 +95,30 @@ pub const Manifest = struct {
             if (line[0] == '#') continue;
 
             // Parse entry and add to list
-            result.entries.append(parseLine(line_idx, line) catch |e| {
-                debug("ERROR: Failed parsing manifest.json line {d}: {s}\n", .{ line_idx, e });
+            manifest.entries.append(parseLine(line_idx, line) catch |e| {
+                debug("ERROR: Failed parsing manifest.json line {d}: {s}\n", .{ line_idx, @errorName(e) });
                 return e;
             }) catch {
-                debug("ERROR: Reached max number of entries in manifest ({d}). File bug to project to make this dynamic.\n", .{result.entries.len});
+                debug("ERROR: Reached max number of entries in manifest ({d}). File bug to project to make this dynamic.\n", .{manifest.entries.len});
                 return ManifestErrors.OutOfBounds;
             };
         }
 
         // Expand variables
-        if (maybe_env) |env| {
-            for (result.entries.slice()) |*entry| {
-                expandVariablesInBounded(entry.src.buffer.len, &entry.src, env) catch |e| {
-                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ e, entry.source_line });
+        if (maybe_envs) |envs| {
+            for (manifest.entries.slice()) |*entry| {
+                expandVariablesInBounded(2048, &entry.src, envs) catch |e| {
+                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ @errorName(e), entry.source_line });
                     return e;
                 };
-                expandVariablesInBounded(entry.dst.buffer.len, &entry.dst, env) catch |e| {
-                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ e, entry.source_line });
+                expandVariablesInBounded(2048, &entry.dst, envs) catch |e| {
+                    debug("ERROR: Got error ({s}) expanding variables in line {d}\n", .{ @errorName(e), entry.source_line });
                     return e;
                 };
             }
         }
 
-        return result;
+        return manifest;
     }
 };
 

@@ -10,10 +10,23 @@ pub fn main() anyerror!void {
     const args = try std.process.argsAlloc(aa);
     defer std.process.argsFree(aa, args);
 
-    var envMap = try std.process.getEnvMap(aa);
-    defer envMap.deinit();
+    var envBufMap = blk: {
+        var envMap = try std.process.getEnvMap(aa);
+        defer envMap.deinit();
+        
+        var map = std.BufMap.init(aa);
 
-    app.cliMain(args[1..], &envMap) catch {
+        var envI = envMap.iterator();
+
+        while(envI.next()) |env| {
+            try map.put(env.key_ptr.*, env.value_ptr.*);
+        }
+        
+        break :blk map;
+    };
+    defer envBufMap.deinit();
+
+    app.cliMain(args[1..], &envBufMap) catch {
         std.process.exit(1);
     };
 }

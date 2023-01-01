@@ -12,6 +12,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("prosit", "src/main.zig");
+    exe.setMainPkgPath(".");
     exe.linkLibC(); // TODO: Evaluate if we can avoid
     exe.setTarget(target);
     exe.setBuildMode(mode);
