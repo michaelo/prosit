@@ -15,7 +15,7 @@ pub const TestHelper = struct {
 
         while (true) {
             var checkFor = std.fmt.bufPrint(scrap[0..], "{s}{c}{s}", .{ path, std.fs.path.sep, needle }) catch return null;
-            if (std.fs.cwd().statFile(checkFor)) {
+            if (std.fs.cwd().statFile(checkFor)) |_| {
                 // Att! Opens with the dir-seperator to allow opening root-dir on Windows
                 return std.fs.cwd().openDir(checkFor[0 .. path.len + 1], .{}) catch return null;
             } else |_| {
@@ -40,7 +40,7 @@ pub const TestHelper = struct {
         for (files) |file| {
             _ = dir.statFile(file) catch |e| {
                 var tmp_dir = dir.openDir(file, .{}) catch |e2| {
-                    debug("TEST ERROR: Expected to find '{s}', but checking it as file resulted in '{s}', and as dir in '{s}'\n", .{file, e, e2});
+                    debug("TEST ERROR: Expected to find '{s}', but checking it as file resulted in '{s}', and as dir in '{s}'\n", .{file, @errorName(e), @errorName(e2)});
                     unreachable;
                 };
                 defer tmp_dir.close();
