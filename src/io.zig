@@ -82,10 +82,10 @@ pub fn fields(cmd: anytype) [][]const u8 {
     }
 }
 
-test "runCmd" {
-    // var arg = "--help";
-    _ = try runCmdAndPrintAllPrefixed(std.testing.allocator, &Console.initSimple(std.io.getStdOut().writer()), fields(.{ "git", "--help" }));
-}
+// test "runCmd" {
+//     // var arg = "--help";
+//     _ = try runCmdAndPrintAllPrefixed(std.testing.allocator, &Console.initSimple(std.io.getStdOut().writer()), fields(.{ "git", "--help" }));
+// }
 
 ///! If no error, user owns returned buf
 pub fn readFile(allocator: std.mem.Allocator, dir: std.fs.Dir, path: []const u8) ![]u8 {

@@ -153,19 +153,19 @@ test "expandVariablesInBounded" {
 
     {
         var mystr = try std.BoundedArray(u8, 1024).fromSlice("$(var)");
-        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try expandVariablesInBounded(1024, &mystr, &env);
         try testing.expectEqualStrings("value", mystr.slice());
     }
 
     {
         var mystr = try std.BoundedArray(u8, 1024).fromSlice("pre$(var)post");
-        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try expandVariablesInBounded(1024, &mystr, &env);
         try testing.expectEqualStrings("prevaluepost", mystr.slice());
     }
 
     {
         var mystr = try std.BoundedArray(u8, 1024).fromSlice("pre$(var)in$(var)post");
-        try expandVariablesInBounded(mystr.buffer.len, &mystr, &env);
+        try expandVariablesInBounded(1024, &mystr, &env);
         try testing.expectEqualStrings("prevalueinvaluepost", mystr.slice());
     }
 }

@@ -2,4 +2,5 @@
 test "e2e:main" {
     _ = @import("file.zig");
     _ = @import("git.zig");
+    _ = @import("https.zig");
 }

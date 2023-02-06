@@ -51,7 +51,7 @@ pub const Console = struct {
             .std_writer = writer,
             .error_writer = writer,
             .verbose_writer = writer,
-            .ttyconf = std.debug.detectTTYConfig(),
+            .ttyconf = std.debug.detectTTYConfig(std.io.getStdErr()),
         };
     }
 
