@@ -41,7 +41,7 @@ pub const TestHelper = struct {
             _ = dir.statFile(file) catch |e| {
                 var tmp_dir = dir.openDir(file, .{}) catch |e2| {
                     debug("TEST ERROR: Expected to find '{s}', but checking it as file resulted in '{s}', and as dir in '{s}'\n", .{file, @errorName(e), @errorName(e2)});
-                    unreachable;
+                    return error.NoSuchFile;
                 };
                 defer tmp_dir.close();
             };

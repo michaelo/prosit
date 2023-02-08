@@ -1,0 +1,319 @@
+// TODO: Make this a self-contained cURL-wrapper
+const std = @import("std");
+
+var is_inited: bool = false;
+
+const cURL = @cImport({
+    @cInclude("curl/curl.h");
+});
+
+pub const HttpMethod = enum {
+    CONNECT,
+    DELETE,
+    GET,
+    HEAD,
+    OPTIONS,
+    PATCH,
+    POST,
+    PUT,
+    TRACE,
+
+    pub fn string(self: HttpMethod) [:0]const u8 {
+        return @tagName(self);
+    }
+    pub fn create(raw: []const u8) !HttpMethod {
+        return std.meta.stringToEnum(HttpMethod, raw) orelse error.NoSuchHttpMethod;
+    }
+};
+
+pub const RequestResponseType = enum { Error, Ok };
+
+pub const RequestResponse = union(RequestResponseType) {
+    // http code >= 400
+    Error: struct {
+        http_code: usize,
+        // headers ?
+        body: ?[]const u8, // TODO: allocate, and leave to receiver?
+    },
+    // http code < 400
+    Ok: struct {
+        http_code: usize,
+        // headers ?
+        body: ?[]const u8, // TODO: allocate, and leave to receiver?
+    },
+};
+
+/// Main API
+pub fn request(allocator: std.mem.Allocator, method: HttpMethod, url: [:0]const u8, comptime params: struct { headers: ?[][:0]const u8 = null, follow_redirect: bool = false, insecure: bool = false }) error{MalformedInput}!RequestResponse {
+    _ = allocator;
+    _ = method;
+    _ = url;
+    _ = headers;
+    _ = params;
+    if (is_inited) return error.NotInited;
+
+    // Initiate
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, HttpMethod.string(method)) != cURL.CURLE_OK) {
+        return error.CouldNotSetRequestMethod;
+    }
+
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, url) != cURL.CURLE_OK) {
+        return error.CouldNotSetURL;
+    }
+
+    // insecure?
+    if (params.insecure) {
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_SSL_VERIFYPEER, @intCast(c_long, 0)) != cURL.CURLE_OK) {
+            return error.CouldNotSetSslVerifyPeer;
+        }
+
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_SSL_VERIFYHOST, @intCast(c_long, 0)) != cURL.CURLE_OK) {
+            return error.CouldNotSetSslVerifyHost;
+        }
+    }
+
+    // Pass headers
+    var list: ?*cURL.curl_slist = null;
+    defer cURL.curl_slist_free_all(list);
+
+    var header_scrap_buf = initBoundedArray(u8, types.HttpHeader.MAX_VALUE_LEN);
+    if (params.headers) |headers| {
+        for (headers) |header| {
+            list = cURL.curl_slist_append(list, header);
+        }
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_HTTPHEADER, list) != cURL.CURLE_OK) {
+            return error.CouldNotSetHeaders;
+        }
+    }
+
+    // Configure response handling
+
+    // Execute
+
+
+    // Retrieve response code
+
+    // Evaluate OK-ish/error-ish and return
+
+    return error.Woops;
+}
+
+pub fn init() !void {
+    if (is_inited) return error.AlreadyInit;
+    if (cURL.curl_global_init(cURL.CURL_GLOBAL_ALL) != cURL.CURLE_OK)
+        return error.CURLGlobalInitFailed;
+
+    is_inited = false;
+}
+
+pub fn deinit() void {
+    cURL.curl_global_cleanup();
+    is_inited = false;
+}
+
+//////////////////////////
+// Original from sapt:
+//////////////////////////
+
+// Convenience-function to initiate a bounded-array without inital size of 0, removing the error-case brough by .init(size)
+pub fn initBoundedArray(comptime T: type, comptime capacity: usize) std.BoundedArray(T, capacity) {
+    return std.BoundedArray(T, capacity).init(0) catch unreachable;
+}
+
+/// Att! This adds a terminating zero at current .slice().len if there's capacity.
+/// Capacity must be > 0
+/// If not sufficient capacity: return null?
+pub fn boundedArrayAsCstr(comptime capacity: usize, array: *std.BoundedArray(u8, capacity)) ![*]u8 {
+    std.debug.assert(capacity > 0);
+    if (array.constSlice().len >= capacity) return error.Overflow;
+
+    array.buffer[array.constSlice().len] = 0;
+    return array.slice().ptr;
+}
+
+fn writeToBoundedArrayCallback(data: *anyopaque, size: c_uint, nmemb: c_uint, user_data: *anyopaque) callconv(.C) c_uint {
+    var buffer = @intToPtr(*std.BoundedArray(u8, 1024 * 1024), @ptrToInt(user_data));
+    var typed_data = @intToPtr([*]u8, @ptrToInt(data));
+    buffer.appendSlice(typed_data[0 .. nmemb * size]) catch return 0;
+    return nmemb * size;
+}
+
+pub const ProcessArgs = struct {
+    ssl_insecure: bool = false,
+    verbose: bool = false,
+};
+
+/// Primary worker function performing the request and handling the response
+pub fn processEntry(entry: *types.Entry, args: ProcessArgs, result: *types.EntryResult) !void {
+    if (is_inited) return error.NotInited;
+
+    //////////////////////////////
+    // Init / generic setup
+    //////////////////////////////
+    const handle = cURL.curl_easy_init() orelse return error.CURLHandleInitFailed;
+    defer cURL.curl_easy_cleanup(handle);
+
+    ///////////////////////
+    // Setup curl options
+    ///////////////////////
+
+    // Set HTTP method
+    var method = initBoundedArray(u8, 8);
+    try method.appendSlice(entry.method.string());
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_CUSTOMREQUEST, try boundedArrayAsCstr(method.buffer.len, &method)) != cURL.CURLE_OK)
+        return error.CouldNotSetRequestMethod;
+
+    // Set URL
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_URL, try boundedArrayAsCstr(entry.url.buffer.len, &entry.url)) != cURL.CURLE_OK)
+        return error.CouldNotSetURL;
+
+    // Set Payload (if given)
+    if (entry.method == .POST or entry.method == .PUT or entry.payload.slice().len > 0) {
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDSIZE, entry.payload.slice().len) != cURL.CURLE_OK)
+            return error.CouldNotSetPostDataSize;
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_POSTFIELDS, try boundedArrayAsCstr(entry.payload.buffer.len, &entry.payload)) != cURL.CURLE_OK)
+            return error.CouldNotSetPostData;
+    }
+
+    // Debug
+    if (args.verbose) {
+        std.debug.print("Payload: {s}\n", .{entry.payload.slice()});
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_VERBOSE, @intCast(c_long, 1)) != cURL.CURLE_OK)
+            return error.CouldNotSetVerbose;
+    }
+
+    if (args.ssl_insecure) {
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_SSL_VERIFYPEER, @intCast(c_long, 0)) != cURL.CURLE_OK)
+            return error.CouldNotSetSslVerifyPeer;
+
+        if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_SSL_VERIFYHOST, @intCast(c_long, 0)) != cURL.CURLE_OK)
+            return error.CouldNotSetSslVerifyHost;
+    }
+
+    // Pass headers
+    var list: ?*cURL.curl_slist = null;
+    defer cURL.curl_slist_free_all(list);
+
+    var header_scrap_buf = initBoundedArray(u8, types.HttpHeader.MAX_VALUE_LEN);
+    for (entry.headers.slice()) |*header| {
+        try header_scrap_buf.resize(0);
+        try header.render(header_scrap_buf.buffer.len, &header_scrap_buf);
+        list = cURL.curl_slist_append(list, try boundedArrayAsCstr(header_scrap_buf.buffer.len, &header_scrap_buf));
+    }
+
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_HTTPHEADER, list) != cURL.CURLE_OK)
+        return error.CouldNotSetHeaders;
+
+    //////////////////////
+    // Execute
+    //////////////////////
+    try result.response_first_1mb.resize(0);
+    try result.response_headers_first_1mb.resize(0);
+
+    // set write function callbacks
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_WRITEFUNCTION, writeToBoundedArrayCallback) != cURL.CURLE_OK)
+        return error.CouldNotSetWriteCallback;
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_HEADERDATA, &result.response_headers_first_1mb) != cURL.CURLE_OK)
+        return error.CouldNotSetWriteCallback;
+    if (cURL.curl_easy_setopt(handle, cURL.CURLOPT_WRITEDATA, &result.response_first_1mb) != cURL.CURLE_OK)
+        return error.CouldNotSetWriteCallback;
+
+    // TODO: This is the critical part to time
+    // Perform
+    // var time_start = std.time.milliTimestamp();
+    if (cURL.curl_easy_perform(handle) != cURL.CURLE_OK)
+        return error.FailedToPerformRequest;
+    // std.debug.print("inner time: {d}\n", .{std.time.milliTimestamp() - time_start});
+
+    ////////////////////////
+    // Handle results
+    ////////////////////////
+    var http_code: u64 = 0;
+    if (cURL.curl_easy_getinfo(handle, cURL.CURLINFO_RESPONSE_CODE, &http_code) != cURL.CURLE_OK)
+        return error.CouldNewGetResponseCode;
+
+    result.response_http_code = http_code;
+
+    var content_type_ptr: [*c]u8 = null;
+    if (cURL.curl_easy_getinfo(handle, cURL.CURLINFO_CONTENT_TYPE, &content_type_ptr) != cURL.CURLE_OK)
+        return error.CouldNewGetResponseContentType;
+
+    // Get Content-Type
+    if (content_type_ptr != null) {
+        var content_type_slice = try std.fmt.bufPrint(&result.response_content_type.buffer, "{s}", .{content_type_ptr});
+        try result.response_content_type.resize(content_type_slice.len);
+    }
+}
+
+pub fn httpCodeToString(code: u64) []const u8 {
+    return switch (code) {
+        100 => "Continue",
+        101 => "Switching protocols",
+        102 => "Processing",
+        103 => "Early Hints",
+
+        200 => "OK",
+        201 => "Created",
+        202 => "Accepted",
+        203 => "Non-Authoritative Information",
+        204 => "No Content",
+        205 => "Reset Content",
+        206 => "Partial Content",
+        207 => "Multi-Status",
+        208 => "Already Reported",
+        226 => "IM Used",
+
+        300 => "Multiple Choices",
+        301 => "Moved Permanently",
+        302 => "Found (Previously \"Moved Temporarily\")",
+        303 => "See Other",
+        304 => "Not Modified",
+        305 => "Use Proxy",
+        306 => "Switch Proxy",
+        307 => "Temporary Redirect",
+        308 => "Permanent Redirect",
+
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        402 => "Payment Required",
+        403 => "Forbidden",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        406 => "Not Acceptable",
+        407 => "Proxy Authentication Required",
+        408 => "Request Timeout",
+        409 => "Conflict",
+        410 => "Gone",
+        411 => "Length Required",
+        412 => "Precondition Failed",
+        413 => "Payload Too Large",
+        414 => "URI Too Long",
+        415 => "Unsupported Media Type",
+        416 => "Range Not Satisfiable",
+        417 => "Expectation Failed",
+        418 => "I'm a Teapot",
+        421 => "Misdirected Request",
+        422 => "Unprocessable Entity",
+        423 => "Locked",
+        424 => "Failed Dependency",
+        425 => "Too Early",
+        426 => "Upgrade Required",
+        428 => "Precondition Required",
+        429 => "Too Many Requests",
+        431 => "Request Header Fields Too Large",
+        451 => "Unavailable For Legal Reasons",
+
+        500 => "Internal Server Error",
+        501 => "Not Implemented",
+        502 => "Bad Gateway",
+        503 => "Service Unavailable",
+        504 => "Gateway Timeout",
+        505 => "HTTP Version Not Supported",
+        506 => "Variant Also Negotiates",
+        507 => "Insufficient Storage",
+        508 => "Loop Detected",
+        510 => "Not Extended",
+        511 => "Network Authentication Required",
+        else => "",
+    };
+}
