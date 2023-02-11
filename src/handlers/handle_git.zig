@@ -57,7 +57,7 @@ pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *ManifestE
                 ctx.console.errorPrint("Unknown error when calling git\n", .{});
                 return HandlersErrors.UnknownError; 
             }) != 0) {
-                ctx.console.errorPrint("Got error executing git pull. See message(s) above.", .{});
+                ctx.console.errorPrint("Got error executing git pull. See message(s) above.\n", .{});
             }
         } else {
             ctx.console.errorPrint("Destination already exists, but is not a git-repo. Aborting.\n", .{});

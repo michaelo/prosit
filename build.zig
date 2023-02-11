@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.linkSystemLibrary("libcurl");
 
     exe.setMainPkgPath(".");
 
@@ -81,7 +82,7 @@ pub fn build(b: *std.Build) void {
         exe_itests.setMainPkgPath("."); // To allow access to src/ as well
 
         // exe_itests.linkSystemLibrary("c");
-        // exe_itests.linkSystemLibrary("libcurl");
+        exe_itests.linkSystemLibrary("libcurl");
 
         const itest_step = b.step("itest", "Run default integration test suite");
         itest_step.dependOn(&exe_itests.step);

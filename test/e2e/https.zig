@@ -5,8 +5,9 @@ const TestHelper = @import("helper.zig").TestHelper;
 // https://raw.githubusercontent.com/michaelo/_prosit_itest/main/README.md
 
 test "e2e:https shall copy file from URL to local path" {
-    var expected_entries = [_][]const u8{ "cloned/to/prosit/README.md" };
+    var expected_entries = [_][]const u8{ "cloned/to/prosit/README.md", "othername" };
     try TestHelper.simpleUpdateAndAssert(
-        \\https: https://raw.githubusercontent.com/michaelo/_prosit_itest/main/README.md > cloned/to/prosit/
+        \\https: https://raw.githubusercontent.com/michaelo/_prosit_itest/main/README.md > cloned/to/prosit/README.md
+        \\https: https://raw.githubusercontent.com/michaelo/_prosit_itest/main/README.md > othername
     , expected_entries[0..]);
 }

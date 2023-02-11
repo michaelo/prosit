@@ -34,12 +34,12 @@ pub const RequestResponse = struct {
     http_code: usize,
     time: i64,
 
-    fn deinit(self: @This()) void {
+    pub fn deinit(self: @This()) void {
         if (self.body) |v| v.deinit();
         if (self.headers) |v| v.deinit();
     }
 
-    fn getHeader(self: @This(), comptime header: []const u8) ![]const u8 {
+    pub fn getHeader(self: @This(), comptime header: []const u8) ![]const u8 {
         var key = header ++ ":";
         if (self.headers) |aheaders| {
             if (std.ascii.indexOfIgnoreCase(aheaders.items, key)) |idx| {
@@ -57,7 +57,7 @@ pub const RequestResponse = struct {
         }
     }
 
-    fn contentType(self: @This()) ![]const u8 {
+    pub fn contentType(self: @This()) ![]const u8 {
         return self.getHeader("Content-Type");
     }
 };
@@ -194,7 +194,7 @@ pub fn request(allocator: std.mem.Allocator, method: HttpMethod, url: [:0]const 
 test "httpclient.request" {
     var result = try request(std.testing.allocator, .GET, "https://raw.githubusercontent.com/michaelo/_prosit_itest/main/README.md", .{});
     defer result.deinit();
-    
+
     switch (result.response_type) {
         .Error => {
             print("Got error\n", .{});
