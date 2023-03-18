@@ -22,7 +22,7 @@ const handlers = blk: {
 
     handlers_arr[@enumToInt(app.EntryType.file)] = @import("handle_file.zig").update;
     handlers_arr[@enumToInt(app.EntryType.git)] = @import("handle_git.zig").update;
-    handlers_arr[@enumToInt(app.EntryType.hg)] = @import("handle_hg.zig").update;
+    // handlers_arr[@enumToInt(app.EntryType.hg)] = @import("handle_hg.zig").update;
     handlers_arr[@enumToInt(app.EntryType.https)] = @import("handle_https.zig").update;
 
     break :blk handlers_arr;

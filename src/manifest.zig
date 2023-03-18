@@ -9,7 +9,7 @@ const ManifestErrors = error{ InvalidSyntax, OutOfBounds, VariableNotFound, Unkn
 pub const EntryType = enum {
     git,
     file,
-    hg,
+    // hg,
     https,
 
     fn fromString(str: []const u8) !EntryType {
