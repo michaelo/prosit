@@ -75,13 +75,11 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
-        exe_itests.linkLibC();
-        // exe_itests.setTarget(target);
-        // exe_itests.setBuildMode(mode);
-        exe_itests.setFilter("e2e:"); // Run only tests prefixed with "integration:"
         exe_itests.setMainPkgPath("."); // To allow access to src/ as well
+        
+        exe_itests.setFilter("e2e:"); // Run only tests prefixed with "integration:"
 
-        // exe_itests.linkSystemLibrary("c");
+        exe_itests.linkLibC();
         exe_itests.linkSystemLibrary("libcurl");
 
         const itest_step = b.step("itest", "Run default integration test suite");
