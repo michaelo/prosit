@@ -18,9 +18,7 @@ fn printAllLinesWithPrefix(buf: []const u8, prefix: []const u8, writer: std.fs.F
     }
 }
 
-pub const ExecErrors = error {
-    ExecError
-};
+pub const ExecErrors = error{ExecError};
 
 pub const CmdRunnerType = *const fn (allocator: std.mem.Allocator, console: *Console, cmd: []const []const u8) ExecErrors!usize;
 
@@ -74,7 +72,7 @@ pub fn fields(cmd: anytype) [][]const u8 {
 
     comptime {
         var results: [fields_info.len][]const u8 = undefined;
-        for (fields_info) |field_info, i| {
+        for (fields_info, 0..) |field_info, i| {
             results[i] = @field(cmd, field_info.name);
         }
 
@@ -94,4 +92,3 @@ pub fn readFile(allocator: std.mem.Allocator, dir: std.fs.Dir, path: []const u8)
 
     return try file.readToEndAlloc(allocator, 10 * 1024 * 1024);
 }
-

@@ -62,7 +62,6 @@ pub const Manifest = struct {
         return self.entries.constSlice();
     }
 
-
     fn parseLine(line_idx: usize, line: []const u8) ManifestErrors!ManifestEntry {
         // format: <type>: <source> > <dest>[flags]
         const type_sep = ": ";

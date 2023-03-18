@@ -151,7 +151,7 @@ pub fn parseArgs(args: [][]const u8) ArgparseErrors!AppArgs {
     }
 
     // TODO: Fail on missing subcommand?
-    if(result.subcommand == null) {
+    if (result.subcommand == null) {
         debug("ERROR: Subcommand expected\n", .{});
         return ArgparseErrors.NoSubcommand;
     }

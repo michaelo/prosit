@@ -49,41 +49,40 @@ fn subpathIsInDir(dir: []const u8, subpath: []const u8) bool {
         'a'...'z', 'A'...'Z' => {
             if (subpath[1] == ':') return false; // Windows drive
         },
-        else => {}
+        else => {},
     }
 
     // Attempt to resolve the subpath relative to dir
-    var scrap_dir : [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    var scrap_subpath : [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var scrap_dir: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var scrap_subpath: [std.fs.MAX_PATH_BYTES]u8 = undefined;
 
     // Assumes dir actually exists
     var dir_path = std.fs.realpath(dir[0..], scrap_dir[0..]) catch return false;
-    var subpath_fullpath = std.fmt.bufPrint(scrap_subpath[0..], "{s}/{s}", .{std.mem.trimRight(u8, dir_path, "\\/"), subpath}) catch return false; // TODO!
-    
+    var subpath_fullpath = std.fmt.bufPrint(scrap_subpath[0..], "{s}/{s}", .{ std.mem.trimRight(u8, dir_path, "\\/"), subpath }) catch return false; // TODO!
+
     // Weakly resolve subpath relative to dir
     std.mem.replaceScalar(u8, dir_path, '\\', '/'); // normalize
     std.mem.replaceScalar(u8, subpath_fullpath, '\\', '/'); // normalize
-    
-    while(std.mem.indexOf(u8, subpath_fullpath, "/..")) |idx| {
+
+    while (std.mem.indexOf(u8, subpath_fullpath, "/..")) |idx| {
         // Replace until first / to the left
-        if(std.mem.lastIndexOfScalar(u8, subpath_fullpath[0..idx], '/')) |sep_idx| {
-            std.mem.copy(u8, subpath_fullpath[sep_idx..], subpath_fullpath[idx+3..]);
-            subpath_fullpath = subpath_fullpath[0..subpath_fullpath.len-(idx-sep_idx+3)];
+        if (std.mem.lastIndexOfScalar(u8, subpath_fullpath[0..idx], '/')) |sep_idx| {
+            std.mem.copy(u8, subpath_fullpath[sep_idx..], subpath_fullpath[idx + 3 ..]);
+            subpath_fullpath = subpath_fullpath[0 .. subpath_fullpath.len - (idx - sep_idx + 3)];
         } else {
             // We've ..'ed, but there's no preceeding dir
             return false;
         }
     }
-    
-    if(!std.mem.startsWith(u8, subpath_fullpath, dir_path)) return false;
+
+    if (!std.mem.startsWith(u8, subpath_fullpath, dir_path)) return false;
 
     return true;
 }
 
-
 test "pathIsRelativeInside" {
-    try testing.expect(subpathIsInDir("." , "./ok"));
-    try testing.expect(subpathIsInDir("." , "ok"));
+    try testing.expect(subpathIsInDir(".", "./ok"));
+    try testing.expect(subpathIsInDir(".", "ok"));
     try testing.expect(!subpathIsInDir(".", "/not/ok"));
     try testing.expect(!subpathIsInDir(".", "../not/ok"));
     try testing.expect(!subpathIsInDir(".", "c:\\not\\ok"));
@@ -93,21 +92,21 @@ test "pathIsRelativeInside" {
 }
 
 ///! Does initial verification of high level correctness of manifest. E.g. with regards to out-of-tree-destination
-fn precheckManifest(ctx: *Context, manifest: *Manifest, args: struct { require_in_ws: bool = true}) AppErrors!void {
+fn precheckManifest(ctx: *Context, manifest: *Manifest, args: struct { require_in_ws: bool = true }) AppErrors!void {
     var all_ok: bool = true;
 
-    for(manifest.entries.constSlice()) |entry| {
-        if(!subpathIsInDir(".", entry.dst.constSlice())) {
-            if(args.require_in_ws) {
-                ctx.console.errorPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{entry.source_line,".", entry.dst.constSlice()});
+    for (manifest.entries.constSlice()) |entry| {
+        if (!subpathIsInDir(".", entry.dst.constSlice())) {
+            if (args.require_in_ws) {
+                ctx.console.errorPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{ entry.source_line, ".", entry.dst.constSlice() });
                 all_ok = false;
             } else {
-                ctx.console.debugPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{entry.source_line,".", entry.dst.constSlice()});
+                ctx.console.debugPrint("manifest line: {d}: destination may point to outside of project workspace ({s} and {s})\n", .{ entry.source_line, ".", entry.dst.constSlice() });
             }
         }
     }
 
-    if(!all_ok) {
+    if (!all_ok) {
         return AppErrors.ManifestError;
     }
 }
@@ -148,7 +147,7 @@ pub fn main(args: *argparse.AppArgs, envMap: *const std.BufMap) AppErrors!void {
         return AppErrors.ManifestError;
     };
 
-    try precheckManifest(&context, &manifest, .{.require_in_ws = !args.allow_out_of_tree});
+    try precheckManifest(&context, &manifest, .{ .require_in_ws = !args.allow_out_of_tree });
 
     // Handle according to subcommand
     if (args.subcommand) |subcommand| switch (subcommand) {
