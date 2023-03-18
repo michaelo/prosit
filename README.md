@@ -71,13 +71,13 @@ Prerequisite: libcurl-dev - TBD: vendor it and deps directly?
 * Clone repo
 * Enter repo
 * Build: zig build
-* Install: zig build --prefix-exe-dir /usr/bin 
-* Test: zig build itest
+* Install: zig build install --prefix /usr/local
+* Integration tests: zig build itest
 
 
 ### Prerequisites
 
-* [zig](https://ziglang.org/) - development is currently done on a fairly recent 0.10.0-build
+* [zig](https://ziglang.org/) - development is currently done on a fairly recent 0.11-build
 
 ## Design goals
 
