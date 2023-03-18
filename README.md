@@ -54,9 +54,9 @@ Supported for v1.0:
 * git
 * file
 * https/http (with basic auth)
-* hg
 
-Future:
+Future possibilities:
+* hg
 * dir
 * https (with other auths)
 * orthogonal to file and https: extraction of archive
@@ -85,7 +85,7 @@ Prerequisite: libcurl-dev - TBD: vendor it and deps directly?
 * Get out of the way as fast as possible
 * Flexible with regards to supported data sources and their in-workspace residency
 * Support/encourage accuracy
-* Minimal runtime dependencies (currently requiring e.g git and hg + libcurl)
+* Minimal runtime dependencies (currently requiring git executable and libcurl)
 * Minimal compile-time dependencies
 
 ## Target platforms
