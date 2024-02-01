@@ -20,17 +20,17 @@ const handlers = blk: {
 
     var handlers_arr: [fields_info.len]HandlerFunc = undefined;
 
-    handlers_arr[@enumToInt(app.EntryType.file)] = @import("handle_file.zig").update;
-    handlers_arr[@enumToInt(app.EntryType.git)] = @import("handle_git.zig").update;
-    // handlers_arr[@enumToInt(app.EntryType.hg)] = @import("handle_hg.zig").update;
-    handlers_arr[@enumToInt(app.EntryType.https)] = @import("handle_https.zig").update;
+    handlers_arr[@intFromEnum(app.EntryType.file)] = @import("handle_file.zig").update;
+    handlers_arr[@intFromEnum(app.EntryType.git)] = @import("handle_git.zig").update;
+    // handlers_arr[@intFromEnum(app.EntryType.hg)] = @import("handle_hg.zig").update;
+    handlers_arr[@intFromEnum(app.EntryType.https)] = @import("handle_https.zig").update;
 
     break :blk handlers_arr;
 };
 
 ///! Convenience-function forwarding a manifest-entry to appropriate handler
 pub fn update(allocator: std.mem.Allocator, ctx: *app.Context, entry: *app.ManifestEntry) HandlersErrors!void {
-    return handlers[@enumToInt(entry.entry_type)](allocator, ctx, entry);
+    return handlers[@intFromEnum(entry.entry_type)](allocator, ctx, entry);
 }
 
 test "smoke test" {
