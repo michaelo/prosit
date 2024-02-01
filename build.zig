@@ -55,7 +55,7 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     // Creates a step for unit testing.
-    const exe_tests = b.addTest(.{
+    const unit_tests = b.addTest(.{
         .root_source_file = .{ .path = "src/app.zig" },
         .target = target,
         .optimize = optimize,
@@ -64,24 +64,27 @@ pub fn build(b: *std.Build) void {
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
     // running the unit tests.
+    const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
+    test_step.dependOn(&run_unit_tests.step);
 
     if(target.isNative()) {
         // Create a separate itest-exe that links the main app?
-        var exe_itests = b.addTest(.{
+        var integration_tests = b.addTest(.{
+            .name = "itest",
             .root_source_file = .{ .path = "test/e2e/main.zig" },
             .target = target,
             .optimize = optimize,
-            .main_pkg_path = .{.path="."},
+            .main_pkg_path = .{ .path = "."},
             .filter = "e2e:"
         });
 
-        exe_itests.linkLibC();
-        exe_itests.linkSystemLibrary("libcurl");
+        integration_tests.linkLibC();
+        integration_tests.linkSystemLibrary("libcurl");
 
-        const itest_step = b.step("itest", "Run default integration test suite");
-        itest_step.dependOn(&exe_itests.step);
+        const run_integration_tests = b.addRunArtifact(integration_tests);
+        const integration_tests_step = b.step("itest", "Run default integration test suite");
+        integration_tests_step.dependOn(&run_integration_tests.step);
     }
 
 }

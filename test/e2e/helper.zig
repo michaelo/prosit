@@ -11,7 +11,8 @@ pub const TestHelper = struct {
     ///! ATT! recursively calling .openDir("..") fails on Windows, so then we resort to this strategy.
     fn getFirstDirContaining(dir: std.fs.Dir, needle: []const u8) ?std.fs.Dir {
         var scrap: [2048]u8 = undefined;
-        var path = dir.realpath(".", scrap[0..]) catch return null;
+        var path_scrap: [2048]u8 = undefined;
+        var path = dir.realpath(".", path_scrap[0..]) catch return null;
 
         while (true) {
             var checkFor = std.fmt.bufPrint(scrap[0..], "{s}{c}{s}", .{ path, std.fs.path.sep, needle }) catch return null;
@@ -61,12 +62,13 @@ pub const TestHelper = struct {
     env: std.BufMap,
 
     pub fn init() !Self {
+        var project_root_chunk_buf: [2048]u8 = undefined;
         var testfiles_path_buf: [2048]u8 = undefined;
 
         var project_root_dir = getFirstDirContaining(std.fs.cwd(), "build.zig") orelse return error.NoRootDirFound;
         defer project_root_dir.close();
 
-        var project_root_chunk = try project_root_dir.realpath(".", testfiles_path_buf[0..]);
+        var project_root_chunk = try project_root_dir.realpath(".", project_root_chunk_buf[0..]);
         var testfiles_path = try std.fmt.bufPrint(testfiles_path_buf[0..], "{s}{s}", .{ project_root_chunk, "/test/testfiles" });
 
         // Setup env
@@ -92,7 +94,7 @@ pub const TestHelper = struct {
         }
 
         // Process
-        var args = [_][]const u8{"update"};
+        var args = [_][]const u8{"update", "-s"};
         try app.cliMain(args[0..], &self.env);
 
         // Evaluate results
